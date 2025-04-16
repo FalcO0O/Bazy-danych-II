@@ -1,4 +1,4 @@
 # Bazy-danych-II
 
 Autorzy:
-Filip Malejki Bartosz Ludwin Mateusz Pawliczak 
+Filip Malejki Bartosz Ludwin Mateusz Pawliczek 
