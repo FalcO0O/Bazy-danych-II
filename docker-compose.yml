@@ -9,5 +9,15 @@ services:
     volumes:
       - "mongo-data:/data/db"
 
+  fastapi_app:
+    build: ./app
+    container_name: fastapi
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo_db
+    environment:
+      - MONGO_URL=mongodb://mongo_db:27017
+
 volumes:
   mongo-data:
