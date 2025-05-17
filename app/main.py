@@ -1,13 +1,15 @@
 from fastapi import FastAPI
-from pymongo import MongoClient
-import os
+from routers import users, auth
 
-app = FastAPI()
+app = FastAPI(
+    title="Auction API",
+    description="API for the auction application",
+    version="1.0.0"
+)
 
-mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-client = MongoClient(mongo_url)
-db = client.mydatabase
+app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 
 @app.get("/")
-def read_root():
-    return {"message": "MongoDB is connected", "collections": db.list_collection_names()}
+async def root():
+    return {"message": "Welcome to the Auction API!"}
