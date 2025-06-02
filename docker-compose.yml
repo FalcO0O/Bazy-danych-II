@@ -16,8 +16,10 @@ services:
       - "8000:8000"
     depends_on:
       - mongo_db
-    environment:
-      - MONGO_URL=mongodb://mongo_db:27017
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app
 
 volumes:
   mongo-data:

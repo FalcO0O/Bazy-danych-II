@@ -29,5 +29,14 @@ The MongoDB database is set up inside a Docker container and is accessible at:
 ```
 mongodb://localhost:27017
 ```
+Server API docs:
+After booting the app, search:
+```
+http://localhost:8000/redoc
+or
+http://localhost:8000/docs
+```
+To test API, use attached postman collection
+`Auction-API.postman_collection.json`
 
 > ⚠️ **Note:** Authentication is currently **disabled**, so you don't need to provide a username or password to connect.
