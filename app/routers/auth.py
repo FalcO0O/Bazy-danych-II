@@ -30,7 +30,7 @@ async def register(user: UserCreate):
 
     # 2. Hashujemy hasło i tworzymy obiekt do zapisania
     hashed_pw = get_password_hash(user.password)
-    user_dict = user.dict()
+    user_dict = user.model_dump()
     user_dict["hashed_password"] = hashed_pw
     user_dict["role"] = "user"     # domyślna rola
     user_dict["refresh_tokens"] = []

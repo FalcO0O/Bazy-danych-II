@@ -14,7 +14,7 @@ router = APIRouter(
 @router.get("/", response_model=List[UserOut])
 async def list_users(admin_user: dict = Depends(get_current_admin)):
     """
-    Lista wszystkich użytkowników – dostępne tylko dla administratora.
+    Lista wszystkich użytkowników - dostępne tylko dla administratora.
     """
     users_cursor = users_collection.find()
     users = []

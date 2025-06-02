@@ -17,11 +17,11 @@ router = APIRouter(
 @router.post("", response_model=AuctionOut)
 async def create_auction(auction: AuctionCreate, current_user: dict = Depends(get_current_active_user)):
     """
-    Tworzenie nowej aukcji – tylko zalogowani użytkownicy.
+    Tworzenie nowej aukcji - tylko zalogowani użytkownicy.
     - Ustawiamy owner_id na _id użytkownika w kolekcji.
     - current_price przyjmujemy jako starting_price.
     """
-    auction_data = auction.dict()
+    auction_data = auction.model_dump()
     auction_data["owner_id"] = str(current_user["_id"])
     auction_data["current_price"] = auction.starting_price
     auction_data["created_at"] = datetime.now()
