@@ -48,6 +48,7 @@ async def get_current_admin(current_user: dict = Depends(get_current_user)):
     Sprawdzenie, czy zalogowany użytkownik ma rolę 'admin'.
     Jeśli nie → 403 Forbidden.
     """
+    print(current_user.get("role"))
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień administratora")
     return current_user
