@@ -4,7 +4,7 @@ from datetime import datetime
 from bson import ObjectId
 
 from schemas import AuctionCreate, AuctionOut, AuctionHistoryOut, BidCreate, BidOut
-from database import auctions_collection, bids_collection, history_collection
+from database import auctions_collection, bids_collection, history_collection, get_client
 from dependencies import get_current_active_user, get_current_admin
 from utils import log_action
 
@@ -94,41 +94,47 @@ async def place_bid(
     - Aukcja musi istnieć.
     - Tylko zalogowani użytkownicy.
     """
-    try:
-        auc = await auctions_collection.find_one({"_id": ObjectId(auction_id)})
-    except:
-        raise HTTPException(status_code=400, detail="Nieprawidłowy identyfikator aukcji")
-    if not auc:
-        raise HTTPException(status_code=404, detail="Aukcja nie znaleziona")
+    async with await get_client().start_session() as session:
+        async with session.start_transaction():
+            try:
+                auc = await auctions_collection.find_one(
+                    {"_id": ObjectId(auction_id)}, 
+                    session = session # check transaction
+                    )
+            except:
+                raise HTTPException(status_code=400, detail="Nieprawidłowy identyfikator aukcji")
+            if not auc:
+                raise HTTPException(status_code=404, detail="Aukcja nie znaleziona")
 
-    if bid.amount <= auc["current_price"]:
-        raise HTTPException(status_code=400, detail="Kwota oferty musi być wyższa niż bieżąca cena")
+            if bid.amount <= auc["current_price"]:
+                raise HTTPException(status_code=400, detail="Kwota oferty musi być wyższa niż bieżąca cena")
 
-    # Aktualizujemy bieżącą cenę w aukcji
-    await auctions_collection.update_one(
-        {"_id": ObjectId(auction_id)},
-        {"$set": {"current_price": bid.amount}}
-    )
+            # Aktualizujemy bieżącą cenę w aukcji
+            await auctions_collection.update_one(
+                {"_id": ObjectId(auction_id)},
+                {"$set": {"current_price": bid.amount}},
+                session = session # check transaction
+            )
 
-    # Zapisujemy ofertę w kolekcji bids
-    bid_data = {
-        "auction_id": auction_id,
-        "user_id": str(current_user["_id"]),
-        "amount": bid.amount,
-        "timestamp": datetime.utcnow()
-    }
-    result = await bids_collection.insert_one(bid_data)
-    new_bid = await bids_collection.find_one({"_id": result.inserted_id})
+            # Zapisujemy ofertę w kolekcji bids
+            bid_data = {
+                "auction_id": auction_id,
+                "user_id": str(current_user["_id"]),
+                "amount": bid.amount,
+                "timestamp": datetime.utcnow()
+            }
+            result = await bids_collection.insert_one(bid_data, session = session)
+            new_bid = await bids_collection.find_one({"_id": result.inserted_id}, session = session)
 
-    await log_action(str(current_user["_id"]), "bid", f"Oferta {bid.amount} na aukcji {auction_id}")
+            await log_action(str(current_user["_id"]), "bid", f"Oferta {bid.amount} na aukcji {auction_id}")
 
-    return BidOut(
-        id=str(new_bid["_id"]),
-        auction_id=new_bid["auction_id"],
-        user_id=new_bid["user_id"],
-        amount=new_bid["amount"],
-        timestamp=new_bid["timestamp"]
-    )
+            return BidOut(
+                id=str(new_bid["_id"]),
+                auction_id=new_bid["auction_id"],
+                user_id=new_bid["user_id"],
+                amount=new_bid["amount"],
+                timestamp=new_bid["timestamp"]
+            )
 
 
 @router.post("/{auction_id}/close")
@@ -142,56 +148,59 @@ async def close_auction(
     - właściciel aukcji (owner_id) lub
     - administrator.
     """
-    # 1) Sprawdź, czy aukcja istnieje
-    try:
-        auc = await auctions_collection.find_one({"_id": ObjectId(auction_id)})
-    except:
-        raise HTTPException(status_code=400, detail="Nieprawidłowy identyfikator aukcji")
-    if not auc:
-        raise HTTPException(status_code=404, detail="Aukcja nie znaleziona")
 
-    # 2) Sprawdź uprawnienia: właściciel lub admin
-    if auc["owner_id"] != str(current_user["_id"]) and current_user.get("role") != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień do zakończenia tej aukcji")
+    async with await get_client().start_session() as session:
+        async with session.start_transaction():
+            # 1) Sprawdź, czy aukcja istnieje
+            try:
+                auc = await auctions_collection.find_one({"_id": ObjectId(auction_id)}, session = session)
+            except:
+                raise HTTPException(status_code=400, detail="Nieprawidłowy identyfikator aukcji")
+            if not auc:
+                raise HTTPException(status_code=404, detail="Aukcja nie znaleziona")
 
-    # 3) Pobierz wszystkie oferty z bids_collection
-    bids_cursor = bids_collection.find({"auction_id": auction_id})
-    bids_list = []
-    async for b in bids_cursor:
-        bids_list.append(b)
+            # 2) Sprawdź uprawnienia: właściciel lub admin
+            if auc["owner_id"] != str(current_user["_id"]) and current_user.get("role") != "admin":
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień do zakończenia tej aukcji")
 
-    # 4) Ustal zwycięzcę (najwyższa oferta):
-    if bids_list:
-        highest = max(bids_list, key=lambda x: x["amount"])
-        winner_id = highest["user_id"]
-        final_price = highest["amount"]
-    else:
-        winner_id = None
-        final_price = auc["current_price"]
+            # 3) Pobierz wszystkie oferty z bids_collection
+            bids_cursor = bids_collection.find({"auction_id": auction_id}, session = session)
+            bids_list = []
+            async for b in bids_cursor:
+                bids_list.append(b)
 
-    # 5) Przygotuj dokument do kolekcji history
-    history_doc = {
-        "title": auc["title"],
-        "description": auc.get("description"),
-        "owner_id": auc["owner_id"],
-        "created_at": auc["created_at"],
-        "closed_at": datetime.now(),
-        "winner_id": winner_id,
-        "final_price": final_price
-    }
-    await history_collection.insert_one(history_doc)
+            # 4) Ustal zwycięzcę (najwyższa oferta):
+            if bids_list:
+                highest = max(bids_list, key=lambda x: x["amount"])
+                winner_id = highest["user_id"]
+                final_price = highest["amount"]
+            else:
+                winner_id = None
+                final_price = auc["current_price"]
 
-    # 6) Usuń aukcję z aktywnych + usuń jej oferty z bids_collection
-    await auctions_collection.delete_one({"_id": ObjectId(auction_id)})
-    await bids_collection.delete_many({"auction_id": auction_id})
+            # 5) Przygotuj dokument do kolekcji history
+            history_doc = {
+                "title": auc["title"],
+                "description": auc.get("description"),
+                "owner_id": auc["owner_id"],
+                "created_at": auc["created_at"],
+                "closed_at": datetime.now(),
+                "winner_id": winner_id,
+                "final_price": final_price
+            }
+            await history_collection.insert_one(history_doc, session = session)
 
-    await log_action(str(current_user["_id"]), "close_auction", f"Zakończono aukcję {auction_id}")
+            # 6) Usuń aukcję z aktywnych + usuń jej oferty z bids_collection
+            await auctions_collection.delete_one({"_id": ObjectId(auction_id)}, session = session)
+            await bids_collection.delete_many({"auction_id": auction_id}, session = session)
 
-    return {
-        "message": "Aukcja została zakończona",
-        "winner_id": winner_id,
-        "final_price": final_price
-    }
+            await log_action(str(current_user["_id"]), "close_auction", f"Zakończono aukcję {auction_id}")
+
+            return {
+                "message": "Aukcja została zakończona",
+                "winner_id": winner_id,
+                "final_price": final_price
+            }
 
 
 @router.get("/history", response_model=List[AuctionHistoryOut])
