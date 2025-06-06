@@ -1,0 +1,202 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from database import history_collection, bids_collection
+from bson import ObjectId
+from schemas import AuctionHistoryOut
+from typing import List
+from dependencies import get_current_admin
+from datetime import datetime, timedelta, timezone
+
+router = APIRouter(
+    prefix="/reports",
+    tags=["reports"]
+)
+
+@router.get("/history", response_model=List[AuctionHistoryOut])
+async def auctions_history(admin: dict = Depends(get_current_admin)):
+    cursor = history_collection.find()
+    history_list = []
+    async for doc in cursor:
+        history_list.append(AuctionHistoryOut(
+            id=str(doc["_id"]),
+            title=doc["title"],
+            description=doc.get("description"),
+            owner_id=doc["owner_id"],
+            created_at=doc["created_at"],
+            closed_at=doc["closed_at"],
+            winner_id=doc.get("winner_id"),
+            final_price=doc.get("final_price")
+        ))
+    return history_list
+
+@router.get("/user-spending")
+async def get_user_spending(admin: dict = Depends(get_current_admin)):
+    pipeline = [
+        {"$match": {"winner_id": {"$ne": None}}},
+        {"$group": {
+            "_id": "$winner_id",
+            "total_spent": {"$sum": "$final_price"},
+            "won_count": {"$sum": 1}
+        }},
+        {"$addFields": {"user_obj_id": {"$toObjectId": "$_id"}}},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_obj_id",
+            "foreignField": "_id",
+            "as": "user"
+        }},
+        {"$unwind": "$user"},
+        {"$project": {
+            "user_id": "$_id",
+            "username": "$user.username",
+            "email": "$user.email",
+            "total_spent": 1,
+            "won_count": 1
+        }},
+        {"$sort": {"total_spent": -1}}
+    ]
+    results = await history_collection.aggregate(pipeline).to_list(length=None)
+    return results
+
+@router.get("/top-winners")
+async def top_winners(limit: int = 10, admin: dict = Depends(get_current_admin)):
+    pipeline = [
+        {"$match": {"winner_id": {"$ne": None}}},
+        {"$group": {
+            "_id": "$winner_id",
+            "won_count": {"$sum": 1},
+            "total_spent": {"$sum": "$final_price"}
+        }},
+        {"$addFields": {"user_obj_id": {"$toObjectId": "$_id"}}},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_obj_id",
+            "foreignField": "_id",
+            "as": "user"
+        }},
+        {"$unwind": "$user"},
+        {"$project": {
+            "user_id": "$_id",
+            "username": "$user.username",
+            "won_count": 1,
+            "total_spent": 1
+        }},
+        {"$sort": {"won_count": -1}},
+        {"$limit": limit}
+    ]
+    results = await history_collection.aggregate(pipeline).to_list(length=None)
+    return results
+
+@router.get("/total-cashflow")
+async def total_cashflow(admin: dict = Depends(get_current_admin)):
+    result = await history_collection.aggregate([
+        {"$match": {"winner_id": {"$ne": None}}},
+        {"$group": {"_id": None, "total": {"$sum": "$final_price"}}}
+    ]).to_list(length=1)
+    return {"total_cashflow": result[0]["total"] if result else 0}
+
+@router.get("/high-value-auctions")
+async def high_value_auctions(min_price: float = 1000.0, admin: dict = Depends(get_current_admin)):
+    pipeline = [
+        {"$match": {"final_price": {"$gte": min_price}}},
+        {"$project": {
+            "id": {"$toString": "$_id"},
+            "title": 1,
+            "description": 1,
+            "owner_id": 1,
+            "created_at": {"$dateToString": {"format": "%Y-%m-%dT%H:%M:%S%z", "date": "$created_at"}},
+            "closed_at": {"$dateToString": {"format": "%Y-%m-%dT%H:%M:%S%z", "date": "$closed_at"}},
+            "winner_id": 1,
+            "final_price": 1,
+            "_id": 0
+        }}
+    ]
+    results = await history_collection.aggregate(pipeline).to_list(length=None)
+    return results
+
+@router.get("/last-week-auctions")
+async def last_week_auctions(admin: dict = Depends(get_current_admin)):
+    since = datetime.now(timezone.utc) - timedelta(days=7)
+    pipeline = [
+        {"$match": {"created_at": {"$gte": since}}},
+        {"$project": {
+            "id": {"$toString": "$_id"},
+            "title": 1,
+            "description": 1,
+            "owner_id": 1,
+            "created_at": {"$dateToString": {"format": "%Y-%m-%dT%H:%M:%S%z", "date": "$created_at"}},
+            "closed_at": {"$dateToString": {"format": "%Y-%m-%dT%H:%M:%S%z", "date": "$closed_at"}},
+            "winner_id": 1,
+            "final_price": 1,
+            "_id": 0
+        }}
+    ]
+    results = await history_collection.aggregate(pipeline).to_list(length=None)
+    return results
+
+@router.get("/last-month-auctions")
+async def last_month_auctions(admin: dict = Depends(get_current_admin)):
+    since = datetime.now(timezone.utc) - timedelta(days=30)
+    pipeline = [
+        {"$match": {"created_at": {"$gte": since}}},
+        {"$project": {
+            "id": {"$toString": "$_id"},
+            "title": 1,
+            "description": 1,
+            "owner_id": 1,
+            "created_at": {"$dateToString": {"format": "%Y-%m-%dT%H:%M:%S%z", "date": "$created_at"}},
+            "closed_at": {"$dateToString": {"format": "%Y-%m-%dT%H:%M:%S%z", "date": "$closed_at"}},
+            "winner_id": 1,
+            "final_price": 1,
+            "_id": 0
+        }}
+    ]
+    results = await history_collection.aggregate(pipeline).to_list(length=None)
+    return results
+
+@router.get("/last-6h-auctions")
+async def last_6h_auctions(admin: dict = Depends(get_current_admin)):
+    since = datetime.now(timezone.utc) - timedelta(hours=6)
+    pipeline = [
+        {"$match": {"created_at": {"$gte": since}}},
+        {"$project": {
+            "id": {"$toString": "$_id"},
+            "title": 1,
+            "description": 1,
+            "owner_id": 1,
+            "created_at": {"$dateToString": {"format": "%Y-%m-%dT%H:%M:%S%z", "date": "$created_at"}},
+            "closed_at": {"$dateToString": {"format": "%Y-%m-%dT%H:%M:%S%z", "date": "$closed_at"}},
+            "winner_id": 1,
+            "final_price": 1,
+            "_id": 0
+        }}
+    ]
+    results = await history_collection.aggregate(pipeline).to_list(length=None)
+    return results
+
+@router.get("/auctions-stats")
+async def auctions_stats(admin: dict = Depends(get_current_admin)):
+    pipeline = [
+        {
+            "$group": {
+                "_id": {
+                    "$cond": [
+                        {"$ifNull": ["$closed_at", False]},
+                        "closed",
+                        "active"
+                    ]
+                },
+                "count": {"$sum": 1}
+            }
+        }
+    ]
+    
+    result = await history_collection.aggregate(pipeline).to_list(length=None)
+
+    stats = {"auctions_active": 0, "auctions_closed": 0}
+    for doc in result:
+        if doc["_id"] == "closed":
+            stats["auctions_closed"] = doc["count"]
+        else:
+            stats["auctions_active"] = doc["count"]
+
+    return stats

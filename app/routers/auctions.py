@@ -3,7 +3,7 @@ from typing import List
 from datetime import datetime
 from bson import ObjectId
 
-from schemas import AuctionCreate, AuctionOut, AuctionHistoryOut, BidCreate, BidOut
+from schemas import AuctionCreate, AuctionOut, BidCreate, BidOut
 from database import auctions_collection, bids_collection, history_collection, get_client
 from dependencies import get_current_active_user, get_current_admin
 from utils import log_action
@@ -255,24 +255,3 @@ async def admin_edit_auction(
         current_price=updated["current_price"],
         created_at=updated["created_at"]
     )
-
-
-@router.get("/history", response_model=List[AuctionHistoryOut])
-async def auctions_history():
-    """
-    Wyświetla wszystkie zakończone aukcje (kolekcja 'auction.history').
-    """
-    cursor = history_collection.find()
-    history_list = []
-    async for doc in cursor:
-        history_list.append(AuctionHistoryOut(
-            id=str(doc["_id"]),
-            title=doc["title"],
-            description=doc.get("description"),
-            owner_id=doc["owner_id"],
-            created_at=doc["created_at"],
-            closed_at=doc["closed_at"],
-            winner_id=doc.get("winner_id"),
-            final_price=doc.get("final_price")
-        ))
-    return history_list

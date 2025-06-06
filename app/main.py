@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import auth as auth_router
 from routers import users as users_router
 from routers import auctions as auctions_router
+from routers import reports as reports_router
 
 app = FastAPI(title="Aukcje Online API", version="1.0")
 
@@ -26,6 +27,7 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(users_router.router)
 app.include_router(auctions_router.router)
+app.include_router(reports_router.router)
 
 # Prosty root endpoint do sprawdzenia, czy API żyje
 @app.get("/")
