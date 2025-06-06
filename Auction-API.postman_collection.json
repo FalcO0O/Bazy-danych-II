@@ -1,364 +1,415 @@
 {
 	"info": {
-		"_postman_id": "cc8ee0e6-06fd-4bc1-b93e-94153e1ae23f",
+		"_postman_id": "51d0626c-a871-4ac5-a324-fac591c4a661",
 		"name": "Auction-API",
-		"description": "Kolekcja do testowania wszystkich endpointów Aukcje Online API. Zawiera przykłady zapytań, nagłówków oraz ciał requestów.",
+		"description": "Kolekcja do testowania wszystkich endpointów Aukcje Online API. Zawiera przykłady zapytań, nagłówków oraz ciał requestów.\n\n#### Co umożliwia API?\n\n- obsługę kont użytkowników\n    \n- interakcje użytkownika z serwisem aukcyjnym (dodawanie aukcji, obstawianie na nich)\n    \n- administrowanie otwartych aukcji i zmiany ich statusu lub informacji",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "40345614"
+		"_exporter_id": "40303085"
 	},
 	"item": [
 		{
-			"name": "Register (Rejestracja)",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123\"\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{base_url}}/register",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"register"
-					]
-				},
-				"description": "Tworzy nowego użytkownika. W odpowiedzi zwraca pola: id, username, email, role."
-			},
-			"response": []
-		},
-		{
-			"name": "Login (Logowanie)",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/x-www-form-urlencoded"
-					}
-				],
-				"body": {
-					"mode": "urlencoded",
-					"urlencoded": [
-						{
-							"key": "username",
-							"value": "test@example.com",
-							"type": "text"
+			"name": "User Configuration",
+			"item": [
+				{
+					"name": "Register (Rejestracja)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
 						},
-						{
-							"key": "password",
-							"value": "Password123",
-							"type": "text"
-						}
-					]
-				},
-				"url": {
-					"raw": "{{base_url}}/login",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"login"
-					]
-				},
-				"description": "Loguje użytkownika. Wymaga pól x-www-form-urlencoded: username (email) oraz password. W odpowiedzi otrzymujemy access_token i refresh_token."
-			},
-			"response": []
-		},
-		{
-			"name": "Token Refresh (Odświeżenie tokena)",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{base_url}}/token/refresh",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"token",
-						"refresh"
-					]
-				},
-				"description": "Odświeża access_token na podstawie ważnego refresh_token."
-			},
-			"response": []
-		},
-		{
-			"name": "Logout (Wylogowanie)",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{access_token}}"
-					}
-				],
-				"url": {
-					"raw": "{{base_url}}/logout",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"logout"
-					]
-				},
-				"description": "Czyści wszystkie refresh_tokeny użytkownika, wywoływany wymaga nagłówka Authorization: Bearer <access_token>."
-			},
-			"response": []
-		},
-		{
-			"name": "List Users (Lista użytkowników) [admin]",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{access_token}}"
-					}
-				],
-				"url": {
-					"raw": "{{base_url}}/users",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"users"
-					]
-				},
-				"description": "Zwraca listę wszystkich użytkowników. Wymaga roli admin (nagłówek Authorization: Bearer <access_token> z tokenem admina)."
-			},
-			"response": []
-		},
-		{
-			"name": "Get User Profile (Profil użytkownika)",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{access_token}}"
-					}
-				],
-				"url": {
-					"raw": "{{base_url}}/users/{{user_id}}",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"users",
-						"{{user_id}}"
-					]
-				},
-				"description": "Pobiera profil użytkownika o podanym ID. Admin może pobrać dowolnego, zwykły użytkownik tylko siebie."
-			},
-			"response": []
-		},
-		{
-			"name": "Get User Bids (Historia ofert użytkownika)",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{access_token}}"
-					}
-				],
-				"url": {
-					"raw": "{{base_url}}/users/{{user_id}}/bids",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"users",
-						"{{user_id}}",
-						"bids"
-					]
-				},
-				"description": "Zwraca wszystkie oferty złożone przez użytkownika o danym ID. Wymaga roli admin lub własne ID."
-			},
-			"response": []
-		},
-		{
-			"name": "Create Auction (Utwórz aukcję)",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{access_token}}"
+						"url": {
+							"raw": "{{base_url}}/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"register"
+							]
+						},
+						"description": "Tworzy nowego użytkownika. W odpowiedzi zwraca pola: id, username, email, role."
 					},
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"title\": \"Test Auction\",\n  \"description\": \"Przykładowy opis aukcji\",\n  \"starting_price\": 100.0\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
+					"response": []
 				},
-				"url": {
-					"raw": "{{base_url}}/auctions",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"auctions"
-					]
-				},
-				"description": "Tworzy nową aukcję. Wymaga nagłówka Authorization: Bearer <access_token>. Zwraca dane utworzonej aukcji."
-			},
-			"response": []
-		},
-		{
-			"name": "List Active Auctions (Lista aktywnych aukcji)",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{base_url}}/auctions",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"auctions"
-					]
-				},
-				"description": "Zwraca listę wszystkich aktywnych aukcji (bez potrzeby autoryzacji)."
-			},
-			"response": []
-		},
-		{
-			"name": "Get Auction by ID (Pobierz aukcję)",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{base_url}}/auctions/{{auction_id}}",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"auctions",
-						"{{auction_id}}"
-					]
-				},
-				"description": "Pobiera szczegóły konkretnej aukcji po ID. Jeśli ID nieprawidłowe → 400 lub 404."
-			},
-			"response": []
-		},
-		{
-			"name": "Place Bid (Złóż ofertę)",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{access_token}}"
+				{
+					"name": "Login (Logowanie)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "test@example.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "Password123",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"login"
+							]
+						},
+						"description": "Loguje użytkownika. Wymaga pól x-www-form-urlencoded: username (email) oraz password. W odpowiedzi otrzymujemy access_token i refresh_token."
 					},
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"amount\": 150.0\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
+					"response": []
 				},
-				"url": {
-					"raw": "{{base_url}}/auctions/{{auction_id}}/bid",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"auctions",
-						"{{auction_id}}",
-						"bid"
-					]
+				{
+					"name": "Token Refresh (Odświeżenie tokena)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/token/refresh",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"token",
+								"refresh"
+							]
+						},
+						"description": "Odświeża access_token na podstawie ważnego refresh_token."
+					},
+					"response": []
 				},
-				"description": "Składa ofertę na aukcję. Wymaga nagłówka Authorization: Bearer <access_token> i podania kwoty wyższej niż current_price."
-			},
-			"response": []
+				{
+					"name": "Logout (Wylogowanie)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"logout"
+							]
+						},
+						"description": "Czyści wszystkie refresh_tokeny użytkownika, wywoływany wymaga nagłówka Authorization: Bearer <access_token>."
+					},
+					"response": []
+				}
+			],
+			"description": "Zawiera zapytania pozwalające na utworzenie konta użytkownika oraz zalogowanie się do niego i zakończenie sesji poprzez wylogowanie."
 		},
 		{
-			"name": "Close Auction (Zakończ aukcję)",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{access_token}}"
-					}
-				],
-				"url": {
-					"raw": "{{base_url}}/auctions/{{auction_id}}/close",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"auctions",
-						"{{auction_id}}",
-						"close"
-					]
+			"name": "User Status",
+			"item": [
+				{
+					"name": "List Users (Lista użytkowników) [admin]",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users"
+							]
+						},
+						"description": "Zwraca listę wszystkich użytkowników. Wymaga roli admin (nagłówek Authorization: Bearer <access_token> z tokenem admina)."
+					},
+					"response": []
 				},
-				"description": "Zamyka aukcję (przenosi do historii). Tylko właściciel aukcji lub admin mogą wywołać. Zwraca zwycięzcę i finalną cenę."
-			},
-			"response": []
+				{
+					"name": "Get User Profile (Profil użytkownika)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{user_id}}"
+							]
+						},
+						"description": "Pobiera profil użytkownika o podanym ID. Admin może pobrać dowolnego, zwykły użytkownik tylko siebie."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Bids (Historia ofert użytkownika)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}/bids",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{user_id}}",
+								"bids"
+							]
+						},
+						"description": "Zwraca wszystkie oferty złożone przez użytkownika o danym ID. Wymaga roli admin lub własne ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Zawiera zapytania pozwalające na sprawdzenie informacji o użytkownikach oraz ich aukcjach."
 		},
 		{
-			"name": "Auction History (Historia zakończonych aukcji)",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{base_url}}/auctions/history",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"auctions",
-						"history"
-					]
+			"name": "Auction Operations",
+			"item": [
+				{
+					"name": "Create Auction (Utwórz aukcję)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Test Auction\",\n  \"description\": \"Przykładowy opis aukcji\",\n  \"starting_price\": 100.0\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auctions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auctions"
+							]
+						},
+						"description": "Tworzy nową aukcję. Wymaga nagłówka Authorization: Bearer <access_token>. Zwraca dane utworzonej aukcji."
+					},
+					"response": []
 				},
-				"description": "Zwraca listę wszystkich zakończonych aukcji (kolekcja 'auction.history')."
-			},
-			"response": []
+				{
+					"name": "List Active Auctions (Lista aktywnych aukcji)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auctions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auctions"
+							]
+						},
+						"description": "Zwraca listę wszystkich aktywnych aukcji (bez potrzeby autoryzacji)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Auction by ID (Pobierz aukcję)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auctions/{{auction_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auctions",
+								"{{auction_id}}"
+							]
+						},
+						"description": "Pobiera szczegóły konkretnej aukcji po ID. Jeśli ID nieprawidłowe → 400 lub 404."
+					},
+					"response": []
+				},
+				{
+					"name": "Place Bid (Złóż ofertę)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 150.0\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auctions/{{auction_id}}/bid",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auctions",
+								"{{auction_id}}",
+								"bid"
+							]
+						},
+						"description": "Składa ofertę na aukcję. Wymaga nagłówka Authorization: Bearer i podania kwoty wyższej niż current_price."
+					},
+					"response": []
+				},
+				{
+					"name": "Close Auction (Zakończ aukcję)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auctions/{{auction_id}}/close",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auctions",
+								"{{auction_id}}",
+								"close"
+							]
+						},
+						"description": "Zamyka aukcję (przenosi do historii). Tylko właściciel aukcji lub admin mogą wywołać. Zwraca zwycięzcę i finalną cenę."
+					},
+					"response": []
+				},
+				{
+					"name": "Auction History (Historia zakończonych aukcji)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auctions/history",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auctions",
+								"history"
+							]
+						},
+						"description": "Zwraca listę wszystkich zakończonych aukcji (kolekcja 'auction.history')."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Auction (Zaktualizuj dane aukcji)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"Changed Test Auction\",\r\n  \"description\": \"New Description\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auctions/{{auction_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auctions",
+								"{{auction_id}}"
+							]
+						},
+						"description": "Umożliwia zmianę danych aukcji.\n\nFunkcja ta dostępna jest tylko z dla użytkowników z rolą admin.\n\nZwraca aukcje ze zmienionymi danymi."
+					},
+					"response": []
+				}
+			],
+			"description": "Zawiera zapytania umożliwiające dodawanie, zakończenie, sprawdzanie lub modyfikowanie stanu aukcji."
 		}
 	],
 	"event": [

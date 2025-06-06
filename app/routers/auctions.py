@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from typing import List
 from datetime import datetime
 from bson import ObjectId
@@ -201,6 +201,60 @@ async def close_auction(
                 "winner_id": winner_id,
                 "final_price": final_price
             }
+
+@router.patch("/{auction_id}", response_model=AuctionOut)
+async def admin_edit_auction(
+    auction_id: str,
+    updates: dict = Body(...),
+    current_admin: dict = Depends(get_current_admin)
+):
+    """
+    Administrator edytuje dane aukcji. 
+    Dozwolone pola: title, description, starting_price.
+    Jeśli istnieją oferty, nie można zmienić starting_price.
+    """
+    allowed_fields = {"title", "description", "starting_price"}
+
+    # 1. Walidacja pól
+    if not updates:
+        raise HTTPException(status_code=400, detail="Brak danych do aktualizacji")
+    
+    for key in updates:
+        if key not in allowed_fields:
+            raise HTTPException(status_code=400, detail=f"Pole '{key}' nie może być edytowane")
+
+    # 2. Pobranie aukcji
+    try:
+        auc = await auctions_collection.find_one({"_id": ObjectId(auction_id)})
+    except:
+        raise HTTPException(status_code=400, detail="Nieprawidłowy identyfikator aukcji")
+
+    if not auc:
+        raise HTTPException(status_code=404, detail="Aukcja nie znaleziona")
+
+    # 3. Jeśli są oferty, zablokuj zmianę starting_price
+    has_bids = await bids_collection.find_one({"auction_id": auction_id})
+    if "starting_price" in updates and has_bids:
+        raise HTTPException(status_code=400, detail="Nie można zmienić ceny startowej – są już oferty")
+
+    # 4. Aktualizacja
+    await auctions_collection.update_one(
+        {"_id": ObjectId(auction_id)},
+        {"$set": updates}
+    )
+
+    updated = await auctions_collection.find_one({"_id": ObjectId(auction_id)})
+
+    await log_action(str(current_admin["_id"]), "edit_auction", f"Edytowano aukcję {auction_id}")
+
+    return AuctionOut(
+        id=str(updated["_id"]),
+        title=updated["title"],
+        description=updated.get("description"),
+        owner_id=updated["owner_id"],
+        current_price=updated["current_price"],
+        created_at=updated["created_at"]
+    )
 
 
 @router.get("/history", response_model=List[AuctionHistoryOut])

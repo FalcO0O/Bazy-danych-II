@@ -1,42 +1,64 @@
-# Databases II – Auction Web App
+# Auctions API - DataBases 2
 
-This project is an **auction website** powered by a **MongoDB** database. The backend technology is yet to be decided.
+This project is a backend service for an auction platform built using **FastAPI** and **MongoDB**. It provides endpoints for user registration, authentication with JWT tokens, auction creation, bidding, and role-based access control.
+
+The system is designed with **asynchronous operations** and **supports transactional updates** where needed to ensure data consistency.
 
 ## 🐳 Docker Setup
 
-The project uses **Docker** to run both the web application and the MongoDB database.
+This project uses **Docker** to run the backend and manage all API endpoints. The database is hosted externally via **MongoDB Atlas**, but you can switch to a local instance if preferred.
 
-### Getting Started
+The `docker-compose.yml` includes a commented section for spinning up a local MongoDB container — simply uncomment it to switch from Atlas to local setup.
 
-1. Navigate to the main project directory:
+### Environment Setup
+
+1. In the main project directory, create a `.env` file:
 
    ```sh
    cd BAZY-DANYCH-II
    ```
 
-2. Run the app using Docker Compose:
+2. Add the following variables to the `.env` file:
+
+   ```env
+   SECRET_KEY=your_secret_key_here
+
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   REFRESH_TOKEN_EXPIRE_MINUTES=10080
+
+   DB_NAME=your_database_name
+   MONGO_URL=your_database_url
+   ```
+
+3. Example `.env` using a local MongoDB setup:
+
+   ```env
+   SECRET_KEY=abcdefg1234567
+
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   REFRESH_TOKEN_EXPIRE_MINUTES=10080
+
+   DB_NAME=AuctionDB
+   MONGO_URL=mongodb://localhost:27017
+   ```
+
+### Running with Docker
+
+1. Navigate to the root of the project:
+
+   ```sh
+   cd BAZY-DANYCH-II
+   ```
+
+2. Start the services with Docker Compose:
 
    ```sh
    docker compose up
    ```
 
-This will start both the backend (when added) and the MongoDB container.
+This will launch the FastAPI backend (when added) and optionally the MongoDB container, depending on your configuration.
 
-## 🍃 MongoDB Configuration
+### Testing the API
 
-The MongoDB database is set up inside a Docker container and is accessible at:
-
-```
-mongodb://localhost:27017
-```
-Server API docs:
-After booting the app, search:
-```
-http://localhost:8000/redoc
-or
-http://localhost:8000/docs
-```
 To test API, use attached postman collection
 `Auction-API.postman_collection.json`
-
-> ⚠️ **Note:** Authentication is currently **disabled**, so you don't need to provide a username or password to connect.
