@@ -62,3 +62,12 @@ This will launch the FastAPI backend (when added) and optionally the MongoDB con
 
 To test API, use attached postman collection
 `Auction-API.postman_collection.json`
+
+### 📄 API Documentation
+
+FastAPI automatically provides interactive API docs:
+
+- Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)  
+- ReDoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+Docs are auto-generated based on route definitions and Python docstrings.

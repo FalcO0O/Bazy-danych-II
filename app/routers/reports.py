@@ -13,6 +13,9 @@ router = APIRouter(
 
 @router.get("/history", response_model=List[AuctionHistoryOut])
 async def auctions_history(admin: dict = Depends(get_current_admin)):
+    """
+    Pobranie historii wszystkich aukcji (dla administratora).
+    """
     cursor = history_collection.find()
     history_list = []
     async for doc in cursor:
@@ -30,6 +33,10 @@ async def auctions_history(admin: dict = Depends(get_current_admin)):
 
 @router.get("/user-spending")
 async def get_user_spending(admin: dict = Depends(get_current_admin)):
+    """
+    Pobranie sumy wydatków każdego użytkownika, który wygrał przynajmniej jedną aukcję.
+    Widoczne tylko dla administratora.
+    """
     pipeline = [
         {"$match": {"winner_id": {"$ne": None}}},
         {"$group": {
@@ -59,6 +66,10 @@ async def get_user_spending(admin: dict = Depends(get_current_admin)):
 
 @router.get("/top-winners")
 async def top_winners(limit: int = 10, admin: dict = Depends(get_current_admin)):
+    """
+    Pobranie listy użytkowników z największą liczbą wygranych aukcji (domyślnie top 10).
+    Widoczne tylko dla administratora.
+    """
     pipeline = [
         {"$match": {"winner_id": {"$ne": None}}},
         {"$group": {
@@ -88,6 +99,10 @@ async def top_winners(limit: int = 10, admin: dict = Depends(get_current_admin))
 
 @router.get("/total-cashflow")
 async def total_cashflow(admin: dict = Depends(get_current_admin)):
+    """
+    Pobranie całkowitej wartości pieniężnej wygenerowanej przez zakończone aukcje.
+    Dostępne tylko dla administratora.
+    """
     result = await history_collection.aggregate([
         {"$match": {"winner_id": {"$ne": None}}},
         {"$group": {"_id": None, "total": {"$sum": "$final_price"}}}
@@ -96,6 +111,10 @@ async def total_cashflow(admin: dict = Depends(get_current_admin)):
 
 @router.get("/high-value-auctions")
 async def high_value_auctions(min_price: float = 1000.0, admin: dict = Depends(get_current_admin)):
+    """
+    Pobranie aukcji, których cena końcowa przekroczyła określoną wartość minimalną (domyślnie 1000).
+    Widoczne tylko dla administratora.
+    """
     pipeline = [
         {"$match": {"final_price": {"$gte": min_price}}},
         {"$project": {
@@ -115,6 +134,10 @@ async def high_value_auctions(min_price: float = 1000.0, admin: dict = Depends(g
 
 @router.get("/last-week-auctions")
 async def last_week_auctions(admin: dict = Depends(get_current_admin)):
+    """
+    Pobranie aukcji utworzonych w ciągu ostatnich 7 dni.
+    Widoczne tylko dla administratora.
+    """
     since = datetime.now(timezone.utc) - timedelta(days=7)
     pipeline = [
         {"$match": {"created_at": {"$gte": since}}},
@@ -135,6 +158,10 @@ async def last_week_auctions(admin: dict = Depends(get_current_admin)):
 
 @router.get("/last-month-auctions")
 async def last_month_auctions(admin: dict = Depends(get_current_admin)):
+    """
+    Pobranie aukcji utworzonych w ciągu ostatnich 30 dni.
+    Widoczne tylko dla administratora.
+    """
     since = datetime.now(timezone.utc) - timedelta(days=30)
     pipeline = [
         {"$match": {"created_at": {"$gte": since}}},
@@ -155,6 +182,10 @@ async def last_month_auctions(admin: dict = Depends(get_current_admin)):
 
 @router.get("/last-6h-auctions")
 async def last_6h_auctions(admin: dict = Depends(get_current_admin)):
+    """
+    Pobranie aukcji utworzonych w ciągu ostatnich 6 godzin.
+    Widoczne tylko dla administratora.
+    """
     since = datetime.now(timezone.utc) - timedelta(hours=6)
     pipeline = [
         {"$match": {"created_at": {"$gte": since}}},
@@ -175,6 +206,10 @@ async def last_6h_auctions(admin: dict = Depends(get_current_admin)):
 
 @router.get("/auctions-stats")
 async def auctions_stats(admin: dict = Depends(get_current_admin)):
+    """
+    Pobranie statystyk aukcji: liczba aktywnych i zamkniętych aukcji.
+    Widoczne tylko dla administratora.
+    """
     pipeline = [
         {
             "$group": {
