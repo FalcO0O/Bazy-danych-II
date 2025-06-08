@@ -7,3 +7,4 @@ python-jose
 pydantic
 pydantic[email]
 python-multipart
+asyncio
