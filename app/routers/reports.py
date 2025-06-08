@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from database import history_collection, bids_collection
+from database import history_collection, auctions_collection
 from bson import ObjectId
 from schemas import AuctionHistoryOut
 from typing import List
@@ -205,33 +205,29 @@ async def last_6h_auctions(admin: dict = Depends(get_current_admin)):
     return results
 
 @router.get("/auctions-stats")
+
 async def auctions_stats(admin: dict = Depends(get_current_admin)):
     """
     Pobranie statystyk aukcji: liczba aktywnych i zamkniętych aukcji.
     Widoczne tylko dla administratora.
     """
+    auctions_active_count = await auctions_collection.count_documents({})
+
     pipeline = [
         {
             "$group": {
-                "_id": {
-                    "$cond": [
-                        {"$ifNull": ["$closed_at", False]},
-                        "closed",
-                        "active"
-                    ]
-                },
+                "_id": "closed",
                 "count": {"$sum": 1}
             }
         }
     ]
-    
     result = await history_collection.aggregate(pipeline).to_list(length=None)
 
-    stats = {"auctions_active": 0, "auctions_closed": 0}
-    for doc in result:
-        if doc["_id"] == "closed":
-            stats["auctions_closed"] = doc["count"]
-        else:
-            stats["auctions_active"] = doc["count"]
+    auctions_closed_count = result[0]["count"] if result else 0
+
+    stats = {
+        "auctions_active": auctions_active_count,
+        "auctions_closed": auctions_closed_count
+    }
 
     return stats
