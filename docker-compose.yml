@@ -19,6 +19,18 @@ services:
     volumes:
       - ./app:/app
 
+  frontend:
+    platform: linux/amd64
+    build:
+      context: ./frontend/auctionhub
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/auctionhub:/app
+    command: ["npm", "run", "dev"]
+
+
 volumes:
   app:
   # mongo-data:
