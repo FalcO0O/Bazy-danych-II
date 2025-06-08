@@ -130,13 +130,21 @@ async def refresh_access_token(body: TokenRefreshRequest):
 
 
 @router.post("/logout")
-async def logout(current_user: dict = Depends(get_current_user), body: TokenRefreshRequest = None):
+async def logout(body: TokenRefreshRequest, current_user: dict = Depends(get_current_user)):
     """
-    Wylogowanie: czyścimy refresh_tokeny u użytkownika.
+    Wylogowanie z sesji
     """
-    await users_collection.update_one(
+    result = await users_collection.update_one(
         {"_id": current_user["_id"]},
-        {"$set": {"refresh_tokens": []}}
+        {"$pull": {"refresh_tokens": body.refresh_token}}
     )
-    await log_action(str(current_user["_id"]), "logout", "Wylogowano użytkownika")
-    return {"message": "Wylogowano"}
+
+    if result.modified_count == 0:
+        # nie znaleziono tokenu
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token odświeżania jest nieprawidłowy lub już został unieważniony"
+        )
+
+    await log_action(str(current_user["_id"]), "logout", "Wylogowano tę sesję użytkownika")
+    return {"message": "Wylogowano z bieżącego urządzenia"}

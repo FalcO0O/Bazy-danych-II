@@ -1,10 +1,10 @@
 {
 	"info": {
-		"_postman_id": "51d0626c-a871-4ac5-a324-fac591c4a661",
+		"_postman_id": "389fc597-a7c0-44a6-be92-971a6391381f",
 		"name": "Auction-API",
 		"description": "Kolekcja do testowania wszystkich endpointów Aukcje Online API. Zawiera przykłady zapytań, nagłówków oraz ciał requestów.\n\n#### Co umożliwia API?\n\n- obsługę kont użytkowników\n    \n- interakcje użytkownika z serwisem aukcyjnym (dodawanie aukcji, obstawianie na nich)\n    \n- administrowanie otwartych aukcji i zmiany ich statusu lub informacji",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "40303085"
+		"_exporter_id": "40345614"
 	},
 	"item": [
 		{
@@ -129,6 +129,15 @@
 								"value": "Bearer {{access_token}}"
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"refresh_token\": \"{{refresh_token}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "{{base_url}}/logout",
 							"host": [

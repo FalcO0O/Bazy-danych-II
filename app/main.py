@@ -28,7 +28,7 @@ app.include_router(users_router.router)
 app.include_router(auctions_router.router)
 app.include_router(reports_router.router)
 
-# Prosty root endpoint do sprawdzenia czy API żyje
 @app.get("/")
 async def root():
+    '''Prosty root endpoint do sprawdzenia czy API żyje'''
     return {"message": "Aukcje Online API jest dostępne."}
