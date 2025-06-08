@@ -99,7 +99,7 @@ async def place_bid(
             try:
                 auc = await auctions_collection.find_one(
                     {"_id": ObjectId(auction_id)}, 
-                    session = session # check transaction
+                    session = session
                     )
             except:
                 raise HTTPException(status_code=400, detail="Nieprawidłowy identyfikator aukcji")
@@ -109,14 +109,14 @@ async def place_bid(
             if bid.amount <= auc["current_price"]:
                 raise HTTPException(status_code=400, detail="Kwota oferty musi być wyższa niż bieżąca cena")
 
-            # Aktualizujemy bieżącą cenę w aukcji
+            # Akutalizacja bieżącej ceny w aukcji
             await auctions_collection.update_one(
                 {"_id": ObjectId(auction_id)},
                 {"$set": {"current_price": bid.amount}},
-                session = session # check transaction
+                session = session
             )
 
-            # Zapisujemy ofertę w kolekcji bids
+            # Zapis oferty w kolekcji bids
             bid_data = {
                 "auction_id": auction_id,
                 "user_id": str(current_user["_id"]),
@@ -151,7 +151,7 @@ async def close_auction(
 
     async with await get_client().start_session() as session:
         async with session.start_transaction():
-            # 1) Sprawdź, czy aukcja istnieje
+            # Sprawdzenie czy aukcja istnieje
             try:
                 auc = await auctions_collection.find_one({"_id": ObjectId(auction_id)}, session = session)
             except:
@@ -159,17 +159,17 @@ async def close_auction(
             if not auc:
                 raise HTTPException(status_code=404, detail="Aukcja nie znaleziona")
 
-            # 2) Sprawdź uprawnienia: właściciel lub admin
+            # Sprawdzenie uprawnień
             if auc["owner_id"] != str(current_user["_id"]) and current_user.get("role") != "admin":
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień do zakończenia tej aukcji")
 
-            # 3) Pobierz wszystkie oferty z bids_collection
+            # Pobranie wszystkich ofert z bids_collection
             bids_cursor = bids_collection.find({"auction_id": auction_id}, session = session)
             bids_list = []
             async for b in bids_cursor:
                 bids_list.append(b)
 
-            # 4) Ustal zwycięzcę (najwyższa oferta):
+            # Ustalenie zwycięzcy:
             if bids_list:
                 highest = max(bids_list, key=lambda x: x["amount"])
                 winner_id = highest["user_id"]
@@ -178,7 +178,7 @@ async def close_auction(
                 winner_id = None
                 final_price = auc["current_price"]
 
-            # 5) Przygotuj dokument do kolekcji history
+            # Przygotowanie dokumentu do kolekcji history
             history_doc = {
                 "title": auc["title"],
                 "description": auc.get("description"),
@@ -190,7 +190,7 @@ async def close_auction(
             }
             await history_collection.insert_one(history_doc, session = session)
 
-            # 6) Usuń aukcję z aktywnych + usuń jej oferty z bids_collection
+            # Usunięcie aukcji z aktywnych + usunięcie jej oferty z bids_collection
             await auctions_collection.delete_one({"_id": ObjectId(auction_id)}, session = session)
             await bids_collection.delete_many({"auction_id": auction_id}, session = session)
 
@@ -215,7 +215,7 @@ async def admin_edit_auction(
     """
     allowed_fields = {"title", "description", "starting_price"}
 
-    # 1. Walidacja pól
+    # Walidacja pól
     if not updates:
         raise HTTPException(status_code=400, detail="Brak danych do aktualizacji")
     
@@ -223,7 +223,7 @@ async def admin_edit_auction(
         if key not in allowed_fields:
             raise HTTPException(status_code=400, detail=f"Pole '{key}' nie może być edytowane")
 
-    # 2. Pobranie aukcji
+    # Pobranie aukcji
     try:
         auc = await auctions_collection.find_one({"_id": ObjectId(auction_id)})
     except:
@@ -232,12 +232,12 @@ async def admin_edit_auction(
     if not auc:
         raise HTTPException(status_code=404, detail="Aukcja nie znaleziona")
 
-    # 3. Jeśli są oferty, zablokuj zmianę starting_price
+    # Jeśli są oferty zablokuj zmianę starting_price
     has_bids = await bids_collection.find_one({"auction_id": auction_id})
     if "starting_price" in updates and has_bids:
-        raise HTTPException(status_code=400, detail="Nie można zmienić ceny startowej – są już oferty")
+        raise HTTPException(status_code=400, detail="Nie można zmienić ceny startowej - są już oferty")
 
-    # 4. Aktualizacja
+    # Aktualizacja
     await auctions_collection.update_one(
         {"_id": ObjectId(auction_id)},
         {"$set": updates}

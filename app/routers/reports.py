@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from database import history_collection, auctions_collection
-from bson import ObjectId
 from schemas import AuctionHistoryOut
 from typing import List
 from dependencies import get_current_admin

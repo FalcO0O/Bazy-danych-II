@@ -24,11 +24,11 @@ async def register(user: UserCreate):
     - zapisujemy do bazy,
     - zwracamy nowe dane (bez hasła).
     """
-    # 1. Sprawdź, czy istnieje użytkownik o danym emailu
+    # Sprawdź czy istnieje użytkownik o danym emailu
     if await users_collection.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Użytkownik o takim adresie email już istnieje")
 
-    # 2. Hashujemy hasło i tworzymy obiekt do zapisania
+    # Hashujemy hasło i tworzymy obiekt do zapisania
     hashed_pw = get_password_hash(user.password)
     user_dict = user.model_dump()
     user_dict["hashed_password"] = hashed_pw
@@ -36,11 +36,11 @@ async def register(user: UserCreate):
     user_dict["refresh_tokens"] = []
     del user_dict["password"]
 
-    # 3. Zapis do bazy
+    # Zapis do bazy
     result = await users_collection.insert_one(user_dict)
     new_user = await users_collection.find_one({"_id": result.inserted_id})
 
-    # 4. Zaloguj akcję
+    # Log akcji
     await log_action(str(new_user["_id"]), "register", "Rejestracja nowego użytkownika")
 
     return UserOut(
@@ -59,12 +59,12 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     - password.
     Generujemy access i refresh token, zapisujemy refresh_token w bazie.
     """
-    # 1. Pobierz user po emailu
+    # Pobierz user po emailu
     user = await users_collection.find_one({"email": form_data.username})
     if not user or not verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(status_code=400, detail="Nieprawidłowy email lub hasło")
 
-    # 2. Stwórz tokeny
+    # Stwórz tokeny
     access_token = create_access_token(
         data={"sub": str(user["_id"]), "role": user["role"]},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -74,13 +74,13 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         expires_delta=timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
     )
 
-    # 3. Zapisz refresh_token w bazie
+    # Zapisz refresh_token w bazie
     await users_collection.update_one(
         {"_id": user["_id"]},
         {"$push": {"refresh_tokens": refresh_token}}
     )
 
-    # 4. Zaloguj akcję
+    # Zaloguj akcję
     await log_action(str(user["_id"]), "login", "Użytkownik zalogowany")
 
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
@@ -132,10 +132,8 @@ async def refresh_access_token(body: TokenRefreshRequest):
 @router.post("/logout")
 async def logout(current_user: dict = Depends(get_current_user), body: TokenRefreshRequest = None):
     """
-    Wylogowanie: opcjonalnie usuwamy dany refresh_token (jeśli klient go podał).
-    W prostszej wersji: czyścimy wszystkie refresh_tokeny u użytkownika.
+    Wylogowanie: czyścimy refresh_tokeny u użytkownika.
     """
-    # W wersji uproszczonej usuwamy wszystkie refresh_tokeny
     await users_collection.update_one(
         {"_id": current_user["_id"]},
         {"$set": {"refresh_tokens": []}}

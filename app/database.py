@@ -4,7 +4,7 @@ from config import MONGO_URL, DB_NAME
 # Inicjalizujemy asynchronicznego klienta Motor
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL)
 
-# Wskazujemy konkretną bazę danych
+# Wskazujemy konkretną bazę
 db = client[DB_NAME]
 
 # Kolekcje

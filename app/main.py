@@ -9,11 +9,10 @@ from routers import reports as reports_router
 
 app = FastAPI(title="Aukcje Online API", version="1.0")
 
-# Opcjonalnie: konfiguracja CORS (jeśli front np. na localhost:3000)
+# konfiguracja CORS (front na localhost:3000)
 origins = [
     "http://localhost",
     "http://localhost:3000",
-    # dodaj inne domeny, jeśli trzeba
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -23,13 +22,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Wpinamy routery do aplikacji
+# Wpinamy routery
 app.include_router(auth_router.router)
 app.include_router(users_router.router)
 app.include_router(auctions_router.router)
 app.include_router(reports_router.router)
 
-# Prosty root endpoint do sprawdzenia, czy API żyje
+# Prosty root endpoint do sprawdzenia czy API żyje
 @app.get("/")
 async def root():
     return {"message": "Aukcje Online API jest dostępne."}
