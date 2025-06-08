@@ -1,6 +1,6 @@
 # Mini Projekt - Bazy Danych II
 
-## Backend do aplikacji Aukcyjnej
+## Aplikacja Aukcyjna - Backend i Frontend
 
 ### Autorzy:
 
@@ -14,7 +14,7 @@ Link do repozytorium GitHub: https://github.com/FalcO0O/Bazy-danych-II
 
 ## Wprowadzenie
 
-Projekt stanowi implementację **backendu aplikacji aukcyjnej**. Umożliwia on tworzenie aukcji oraz licytowanie ich przez użytkowników. Informacje są przechowywane w systemie bazodanowym, w którym znajdują się dane o użytkownikach, aukcjach oraz logi transakcji.
+Projekt stanowi implementację **pełnej aplikacji aukcyjnej** składającej się z backendu oraz frontendu. Umożliwia on tworzenie aukcji oraz licytowanie ich przez użytkowników. Informacje są przechowywane w systemie bazodanowym, w którym znajdują się dane o użytkownikach, aukcjach oraz logi transakcji.
 
 ---
 
@@ -22,16 +22,36 @@ Projekt stanowi implementację **backendu aplikacji aukcyjnej**. Umożliwia on t
 
 Projekt został zrealizowany przy użyciu następujących technologii:
 
-- **Backend**: Python + FastAPI
+### Backend
+- **Python + FastAPI**
 - **Baza danych**: MongoDB
 - **Komunikacja z bazą**: Motor (asynchroniczny klient MongoDB) + PyMongo
-- **Środowisko uruchomieniowe**: Docker
+
+### Frontend
+- **Interfejs użytkownika** dostępny pod adresem **localhost:3000**
+
+### Środowisko uruchomieniowe
+- **Docker** z Docker Compose
 
 Dodatkowo wykorzystano biblioteki do:
 
 - obsługi zapytań HTTP,
 - szyfrowania haseł,
 - tworzenia i walidacji tokenów JWT.
+
+---
+
+## Uruchomienie aplikacji
+
+Aplikacja składa się z backendu i frontendu, które są uruchamiane jednocześnie za pomocą Docker Compose:
+
+```sh
+docker compose up
+```
+
+Po uruchomieniu:
+- **Frontend** będzie dostępny pod adresem: **http://localhost:3000**
+- **Backend API** będzie dostępny zgodnie z konfiguracją Docker Compose
 
 ---
 
@@ -55,6 +75,8 @@ API aplikacji aukcyjnej umożliwia:
 - Logowanie zmian aukcji (utworzenie, zamknięcie, licytowanie)
 
 Backend zapewnia poprawne wykonanie powyższych operacji poprzez wykorzystanie **systemu transakcji**. Jest to szczególnie istotne w przypadku konkurencyjnych operacji, takich jak licytacje, gdzie wiele ofert może być składanych jednocześnie.
+
+**Frontend** zapewnia intuicyjny interfejs użytkownika umożliwiający korzystanie ze wszystkich funkcjonalności aplikacji aukcyjnej bez konieczności bezpośredniego korzystania z API.
 
 ---
 
