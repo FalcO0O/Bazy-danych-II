@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body
 from typing import List
 from datetime import datetime
 from bson import ObjectId
+from pymongo.errors import OperationFailure
+from bson.errors import InvalidId
+from asyncio import sleep
 
 from schemas import AuctionCreate, AuctionOut, BidCreate, BidOut
 from database import auctions_collection, bids_collection, history_collection, get_client
@@ -80,61 +83,66 @@ async def get_auction(auction_id: str):
         created_at=auc["created_at"]
     )
 
-
 @router.post("/{auction_id}/bid", response_model=BidOut)
 async def place_bid(
     auction_id: str,
     bid: BidCreate,
     current_user: dict = Depends(get_current_active_user)
 ):
-    """
-    Składanie oferty na aukcję (podbicie bieżącej ceny).
-    Warunki:
-    - Podana kwota > current_price.
-    - Aukcja musi istnieć.
-    - Tylko zalogowani użytkownicy.
-    """
-    async with await get_client().start_session() as session:
-        async with session.start_transaction():
-            try:
-                auc = await auctions_collection.find_one(
-                    {"_id": ObjectId(auction_id)}, 
-                    session = session
+    for attempt in range(5):
+        try:
+            async with await get_client().start_session() as session:
+                async with session.start_transaction():
+                    try:
+                        auc = await auctions_collection.find_one(
+                            {"_id": ObjectId(auction_id)}, 
+                            session=session
+                        )
+                    except InvalidId:
+                        raise HTTPException(status_code=400, detail="Nieprawidłowy identyfikator aukcji")
+
+                    if not auc:
+                        raise HTTPException(status_code=404, detail="Aukcja nie znaleziona")
+
+                    if bid.amount <= auc["current_price"]:
+                        raise HTTPException(status_code=400, detail="Kwota oferty musi być wyższa niż bieżąca cena")
+
+                    await auctions_collection.update_one(
+                        {"_id": ObjectId(auction_id)},
+                        {"$set": {"current_price": bid.amount}},
+                        session=session
                     )
-            except:
-                raise HTTPException(status_code=400, detail="Nieprawidłowy identyfikator aukcji")
-            if not auc:
-                raise HTTPException(status_code=404, detail="Aukcja nie znaleziona")
 
-            if bid.amount <= auc["current_price"]:
-                raise HTTPException(status_code=400, detail="Kwota oferty musi być wyższa niż bieżąca cena")
+                    bid_data = {
+                        "auction_id": auction_id,
+                        "user_id": str(current_user["_id"]),
+                        "amount": bid.amount,
+                        "timestamp": datetime.utcnow()
+                    }
+                    result = await bids_collection.insert_one(bid_data, session=session)
+                    new_bid = await bids_collection.find_one({"_id": result.inserted_id}, session=session)
 
-            # Akutalizacja bieżącej ceny w aukcji
-            await auctions_collection.update_one(
-                {"_id": ObjectId(auction_id)},
-                {"$set": {"current_price": bid.amount}},
-                session = session
-            )
+                    await log_action(str(current_user["_id"]), "bid", f"Oferta {bid.amount} na aukcji {auction_id}")
 
-            # Zapis oferty w kolekcji bids
-            bid_data = {
-                "auction_id": auction_id,
-                "user_id": str(current_user["_id"]),
-                "amount": bid.amount,
-                "timestamp": datetime.utcnow()
-            }
-            result = await bids_collection.insert_one(bid_data, session = session)
-            new_bid = await bids_collection.find_one({"_id": result.inserted_id}, session = session)
-
-            await log_action(str(current_user["_id"]), "bid", f"Oferta {bid.amount} na aukcji {auction_id}")
-
-            return BidOut(
-                id=str(new_bid["_id"]),
-                auction_id=new_bid["auction_id"],
-                user_id=new_bid["user_id"],
-                amount=new_bid["amount"],
-                timestamp=new_bid["timestamp"]
-            )
+                    return BidOut(
+                        id=str(new_bid["_id"]),
+                        auction_id=new_bid["auction_id"],
+                        user_id=new_bid["user_id"],
+                        amount=new_bid["amount"],
+                        timestamp=new_bid["timestamp"]
+                    )
+        except HTTPException:
+            raise
+        except OperationFailure as e:
+            if "TransientTransactionError" in str(e) or e.has_error_label("TransientTransactionError"):
+                if attempt == 4:
+                    raise HTTPException(status_code=500, detail="Przekroczono maksymalną liczbę prób transakcji")
+                await sleep(0.1)
+                continue
+            else:
+                raise HTTPException(status_code=500, detail=f"Błąd serwera: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Błąd serwera: {str(e)}")
 
 
 @router.post("/{auction_id}/close")
