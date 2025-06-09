@@ -191,6 +191,7 @@ function LoginForm({ onSwitchToRegister }) {
     try {
       await login(email, password);
     } catch (err) {
+      log(err)
       setError('Nieprawidłowy email lub hasło');
     } finally {
       setLoading(false);
@@ -860,7 +861,7 @@ function UserManagement() {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const response = await api.request('/admin/users');
+        const response = await api.request('/users');
         const data = await response.json();
         setUsers(data);
       } catch (error) {
@@ -875,7 +876,7 @@ function UserManagement() {
 
   const handleToggleUserStatus = async (userId, currentStatus) => {
     try {
-      await api.request(`/admin/users/${userId}/toggle-status`, {
+      await api.request(`/users/${userId}/toggle-status`, {
         method: 'POST'
       });
       setUsers(users.map(user => 
@@ -890,7 +891,7 @@ function UserManagement() {
 
   const handlePromoteUser = async (userId) => {
     try {
-      await api.request(`/admin/users/${userId}/promote`, {
+      await api.request(`/users/${userId}/promote`, {
         method: 'POST'
       });
       setUsers(users.map(user => 

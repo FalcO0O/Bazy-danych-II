@@ -9,10 +9,10 @@ from routers import reports as reports_router
 
 app = FastAPI(title="Aukcje Online API", version="1.0")
 
-# konfiguracja CORS (front na localhost:3000)
+# konfiguracja CORS (front na localhost:5173)
 origins = [
     "http://localhost",
-    "http://localhost:3000",
+    "http://localhost:5173",
 ]
 app.add_middleware(
     CORSMiddleware,

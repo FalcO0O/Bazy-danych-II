@@ -2,16 +2,20 @@
 
 FROM node:20-alpine
 
+# Ustawiamy katalog roboczy w kontenerze
 WORKDIR /app
 
+# Kopiujemy tylko pliki konfiguracyjne npm, aby wykorzystać cache warstw
 COPY package*.json ./
 
-RUN rm -rf node_modules package-lock.json
+# Instalujemy zależności precyzyjnie zgodnie z lockfile
+RUN npm ci --include=dev
 
-RUN npm install
-
+# Kopiujemy resztę kodu aplikacji
 COPY . .
 
+# Otwieramy port, na którym działa Vite
 EXPOSE 3000
 
+# Domyślna komenda uruchamiająca aplikację
 CMD ["npm", "run", "dev"]

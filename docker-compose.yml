@@ -8,12 +8,12 @@ services:
   #     - "mongo-data:/data/db"
 
   fastapi_app:
-    build: ./app
+    build:
+      context: ./app
+      dockerfile: Dockerfile
     container_name: fastapi
     ports:
       - "8000:8000"
-    # depends_on:
-    #   - mongo_db
     env_file:
       - .env
     volumes:
@@ -23,12 +23,16 @@ services:
     platform: linux/amd64
     build:
       context: ./frontend/auctionhub
+      dockerfile: Dockerfile
     container_name: frontend
-    ports:
-      - "3000:3000"
+    working_dir: /app
     volumes:
-      - ./frontend/auctionhub:/app
-    command: ["npm", "run", "dev"]
+      - ./frontend/auctionhub:/app:delegated
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    command: ["npm", "run", "dev", "--", "--host"]
+
 
 
 volumes:
