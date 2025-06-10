@@ -134,6 +134,11 @@ class ApiService {
     const response = await this.request('/reports/auctions-stats');
     return response.json();
   }
+
+  async getCashFlow() {
+    const response = await this.request('/reports/total-cashflow')
+    return response.json();
+  }
 }
 
 const api = new ApiService();
@@ -714,6 +719,7 @@ function CreateAuction() {
 
 function Reports() {
   const [stats, setStats] = useState(null);
+  const [cashflow, setCashflow] = useState(null);
   const [topWinners, setTopWinners] = useState([]);
   const [userSpending, setUserSpending] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -721,13 +727,16 @@ function Reports() {
   useEffect(() => {
     const loadReports = async () => {
       try {
-        const [statsData, winnersData, spendingData] = await Promise.all([
+        const [statsData, cashFlowData, winnersData, spendingData] = await Promise.all([
           api.getAuctionStats(),
+          api.getCashFlow(),
           api.getTopWinners(),
           api.getUserSpending()
         ]);
         setStats(statsData);
+        setCashflow(cashFlowData);
         setTopWinners(winnersData);
+        console.log(winnersData);
         setUserSpending(spendingData);
       } catch (error) {
         console.error('Error loading reports:', error);
@@ -776,19 +785,9 @@ function Reports() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300 text-sm">Łączna wartość</p>
-              <p className="text-2xl font-bold text-white">{stats?.total_value?.toFixed(2) || '0.00'} zł</p>
+              <p className="text-2xl font-bold text-white">{cashflow?.total_cashflow?.toFixed(2) || '0.00'} zł</p>
             </div>
             <DollarSign className="w-8 h-8 text-yellow-400" />
-          </div>
-        </div>
-
-        <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-300 text-sm">Użytkownicy</p>
-              <p className="text-2xl font-bold text-white">{stats?.total_users || 0}</p>
-            </div>
-            <Users className="w-8 h-8 text-purple-400" />
           </div>
         </div>
       </div>
@@ -812,7 +811,7 @@ function Reports() {
                 </div>
                 <div>
                   <p className="text-white font-medium">{winner.username}</p>
-                  <p className="text-gray-400 text-sm">{winner.won_auctions} wygranych aukcji</p>
+                  <p className="text-gray-400 text-sm">{winner.won_count} wygranych aukcji</p>
                 </div>
               </div>
               <div className="text-right">
