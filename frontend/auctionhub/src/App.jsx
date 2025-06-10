@@ -919,7 +919,7 @@ function UserManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">Zarządzanie użytkownikami</h2>
+        <h2 className="text-2xl font-bold text-white">Lista Użytkowników</h2>
         <div className="text-gray-300">
           {users.length} {users.length === 1 ? 'użytkownik' : 'użytkowników'}
         </div>
@@ -943,9 +943,9 @@ function UserManagement() {
                 <th className="px-6 py-4 text-left text-gray-300 font-medium">Użytkownik</th>
                 <th className="px-6 py-4 text-left text-gray-300 font-medium">Email</th>
                 <th className="px-6 py-4 text-left text-gray-300 font-medium">Rola</th>
-                <th className="px-6 py-4 text-left text-gray-300 font-medium">Status</th>
+                {/* <th className="px-6 py-4 text-left text-gray-300 font-medium">Status</th>
                 <th className="px-6 py-4 text-left text-gray-300 font-medium">Data rejestracji</th>
-                <th className="px-6 py-4 text-left text-gray-300 font-medium">Akcje</th>
+                <th className="px-6 py-4 text-left text-gray-300 font-medium">Akcje</th> */}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/10">
@@ -971,7 +971,7 @@ function UserManagement() {
                       {user.role === 'admin' ? 'Administrator' : 'Użytkownik'}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  {/* <td className="px-6 py-4">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                       user.is_active 
                         ? 'bg-green-500/20 text-green-300 border border-green-500/30'
@@ -1004,7 +1004,7 @@ function UserManagement() {
                         </button>
                       )}
                     </div>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>
