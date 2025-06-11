@@ -60,15 +60,6 @@
 <li>tworzenia i walidacji tokenów JWT.</li>
 </ul>
 <hr>
-<h2 id="uruchomienie-aplikacji">Uruchomienie aplikacji </h2>
-<p>Aplikacja składa się z backendu i frontendu, które są uruchamiane jednocześnie za pomocą Docker Compose:</p>
-<pre data-role="codeBlock" data-info="sh" class="language-bash sh"><code><span class="token function">docker</span> compose up
-</code></pre><p>Po uruchomieniu:</p>
-<ul>
-<li><strong>Frontend</strong> będzie dostępny pod adresem: <strong><a href="http://localhost:3000">http://localhost:3000</a></strong></li>
-<li><strong>Backend API</strong> będzie dostępny zgodnie z konfiguracją Docker Compose</li>
-</ul>
-<hr>
 <h2 id="funkcjonalności">Funkcjonalności </h2>
 <p>API aplikacji aukcyjnej umożliwia:</p>
 <ul>
@@ -108,6 +99,32 @@
 <p>Backend zapewnia poprawne wykonanie powyższych operacji poprzez wykorzystanie <strong>systemu transakcji</strong>. Jest to szczególnie istotne w przypadku konkurencyjnych operacji, takich jak licytacje, gdzie wiele ofert może być składanych jednocześnie.</p>
 <p><strong>Frontend</strong> zapewnia intuicyjny interfejs użytkownika umożliwiający korzystanie ze wszystkich funkcjonalności aplikacji aukcyjnej bez konieczności bezpośredniego korzystania z API.</p>
 <hr>
+<h2 id="uruchomienie-aplikacji">Uruchomienie aplikacji </h2>
+<p>Aplikacja składa się z backendu i frontendu, które są uruchamiane jednocześnie za pomocą Docker Compose:</p>
+<pre data-role="codeBlock" data-info="sh" class="language-bash sh"><code><span class="token function">docker</span> compose up
+</code></pre><p>Po uruchomieniu:</p>
+<ul>
+<li><strong>Frontend</strong> będzie dostępny pod adresem: <strong><a href="http://localhost:3000">http://localhost:3000</a></strong></li>
+<li><strong>Backend API</strong> będzie dostępny zgodnie z konfiguracją Docker Compose</li>
+</ul>
+<hr>
+<h2 id="konfiguracja-środowiska-env">Konfiguracja Środowiska <code>.env</code> </h2>
+<p>Aby skonfigurować środowisko projektu, utwórz plik o nazwie <code>.env</code> w głównym katalogu projektu.</p>
+<p>Najpierw przejdź do głównego katalogu projektu:</p>
+<pre data-role="codeBlock" data-info="bash" class="language-bash bash"><code><span class="token builtin class-name">cd</span> BAZY-DANYCH-II
+</code></pre><p>Następnie dodaj następujące zmienne do nowo utworzonego pliku <code>.env</code>:</p>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>SECRET_KEY=twój_sekretny_klucz
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_MINUTES=10080
+DB_NAME=nazwa_twojej_bazy_danych
+MONGO_URL=adres_URL_twojej_bazy_danych
+</code></pre><h3 id="przykładowy-plik-env-dla-lokalnej-konfiguracji-mongodb">Przykładowy plik <code>.env</code> dla lokalnej konfiguracji MongoDB: </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>SECRET_KEY=abcdefg1234567
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_MINUTES=10080
+DB_NAME=AuctionDB
+MONGO_URL=mongodb://localhost:27017
+</code></pre><hr>
 <h2 id="możliwe-udoskonalenia">Możliwe udoskonalenia </h2>
 <p>Aktualnie aukcje są kończone ręcznie przez właściciela aukcji lub administratora. Możliwym usprawnieniem byłoby wprowadzenie mechanizmu automatycznego zamykania aukcji na podstawie ustalonej daty zakończenia.</p>
 <hr>

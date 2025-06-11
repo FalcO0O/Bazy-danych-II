@@ -41,20 +41,6 @@ Dodatkowo wykorzystano biblioteki do:
 
 ---
 
-## Uruchomienie aplikacji
-
-Aplikacja składa się z backendu i frontendu, które są uruchamiane jednocześnie za pomocą Docker Compose:
-
-```sh
-docker compose up
-```
-
-Po uruchomieniu:
-- **Frontend** będzie dostępny pod adresem: **http://localhost:3000**
-- **Backend API** będzie dostępny zgodnie z konfiguracją Docker Compose
-
----
-
 ## Funkcjonalności
 
 API aplikacji aukcyjnej umożliwia:
@@ -77,6 +63,51 @@ API aplikacji aukcyjnej umożliwia:
 Backend zapewnia poprawne wykonanie powyższych operacji poprzez wykorzystanie **systemu transakcji**. Jest to szczególnie istotne w przypadku konkurencyjnych operacji, takich jak licytacje, gdzie wiele ofert może być składanych jednocześnie.
 
 **Frontend** zapewnia intuicyjny interfejs użytkownika umożliwiający korzystanie ze wszystkich funkcjonalności aplikacji aukcyjnej bez konieczności bezpośredniego korzystania z API.
+
+---
+
+## Uruchomienie aplikacji
+
+Aplikacja składa się z backendu i frontendu, które są uruchamiane jednocześnie za pomocą Docker Compose:
+
+```sh
+docker compose up
+```
+
+Po uruchomieniu:
+- **Frontend** będzie dostępny pod adresem: **http://localhost:3000**
+- **Backend API** będzie dostępny zgodnie z konfiguracją Docker Compose
+
+---
+
+## Konfiguracja Środowiska `.env`
+
+Aby skonfigurować środowisko projektu, utwórz plik o nazwie `.env` w głównym katalogu projektu.
+
+Najpierw przejdź do głównego katalogu projektu:
+```bash
+cd BAZY-DANYCH-II
+```
+
+Następnie dodaj następujące zmienne do nowo utworzonego pliku `.env`:
+
+```
+SECRET_KEY=twój_sekretny_klucz
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_MINUTES=10080
+DB_NAME=nazwa_twojej_bazy_danych
+MONGO_URL=adres_URL_twojej_bazy_danych
+```
+
+### Przykładowy plik `.env` dla lokalnej konfiguracji MongoDB:
+
+```
+SECRET_KEY=abcdefg1234567
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_MINUTES=10080
+DB_NAME=AuctionDB
+MONGO_URL=mongodb://localhost:27017
+```
 
 ---
 
