@@ -111,20 +111,9 @@
 <h2 id="możliwe-udoskonalenia">Możliwe udoskonalenia </h2>
 <p>Aktualnie aukcje są kończone ręcznie przez właściciela aukcji lub administratora. Możliwym usprawnieniem byłoby wprowadzenie mechanizmu automatycznego zamykania aukcji na podstawie ustalonej daty zakończenia.</p>
 <hr>
-<h2 id="dokumentacja">Dokumentacja </h2>
-<p>W ramach projektu przygotowano osobny plik <code>dokumentacja.pdf</code>, który zawiera szczegółowy opis każdego endpointu umożliwiającego komunikację z serwerem i modyfikację danych w bazie.</p>
-<p><strong>Dokumentacja zawiera:</strong></p>
-<ul>
-<li>Opis działania każdego endpointu.</li>
-<li>Schemat danych wejściowych i wyjściowych.</li>
-<li>Informację o typie odpowiedzi HTTP <em>(kody statusu)</em>.</li>
-<li>Przykładowe zapytania i odpowiedzi w formacie JSON.</li>
-<li>Informację o wymaganiach walidacyjnych <em>(np. minimalna długość hasła, wymagane pola)</em>.</li>
-</ul>
-<hr>
 <h2 id="testowanie-race-condition">Testowanie Race Condition </h2>
 <p>W celu weryfikacji działania systemu transakcji użytego w endpointach licytacji, przygotowano dedykowany program testujący symulujący warunki wyścigu (race condition).</p>
-<p>Testy są uruchamiane na osobnej, testowej bazie danych, co zapewnia bezpieczeństwo i izolację środowiska.</p>
+<p>Testy można uruchomić na osobnej, testowej bazie danych, co zapewnia bezpieczeństwo i izolację środowiska.</p>
 <h3 id="wymagania">Wymagania </h3>
 <p>Do uruchomienia testu potrzebny jest interpreter <strong>Python</strong>. Można go pobrać ze strony: <a href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
 <hr>
@@ -138,7 +127,9 @@
 </ul>
 <hr>
 <h3 id="uruchomienie-testu">Uruchomienie testu </h3>
-<p>Aby uruchomić test:</p>
+<p>Test wymaga aktywnej bazy danych. Włącz ją przed wykonaniem poniższych komend:</p>
+<pre data-role="codeBlock" data-info="sh" class="language-bash sh"><code><span class="token function">docker</span> compose up
+</code></pre><p>Aby uruchomić test:</p>
 <ol>
 <li>
 <p>Przejdź do folderu <code>testing</code>:</p>
@@ -169,7 +160,554 @@
 ✅ Auction 6845fca72bda3f4afc7ac07c closed.
 </code></pre><p>Jak widać, system transakcji zapobiega konfliktom — tylko jedna oferta o danej kwocie jest zaakceptowana, a pozostałe są odrzucane.<br>
 W przypadku błędu transakcyjnego mogłoby dojść do zaakceptowania tej samej kwoty wielokrotnie.</p>
-
+<hr>
+<h2 id="zapytania-do-bazy---dokumentacja">Zapytania do Bazy - <code>Dokumentacja</code> </h2>
+<hr>
+<h3 id="zapytania-autoryzacja"><code>ZAPYTANIA: AUTORYZACJA</code> </h3>
+<hr>
+<h3 id="rejestracja-użytkownika"><strong>Rejestracja Użytkownika</strong> </h3>
+<h3 id="post-register"><code>POST /register</code> </h3>
+<p><strong>Opis:</strong><br>
+Odpowiada za <strong>rejestrację nowych użytkowników</strong>. Waliduje unikalność e-maila, hashuje hasło i zapisuje dane użytkownika do bazy danych (bez hasła). Nowi użytkownicy otrzymują domyślną rolę "user".</p>
+<p><strong>Akceptowane dane (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"username"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"email"</span><span class="token operator">:</span> <span class="token string">"user@example.com"</span><span class="token punctuation">,</span>
+    <span class="token property">"password"</span><span class="token operator">:</span> <span class="token string">"string"</span>
+<span class="token punctuation">}</span>
+</code></pre><p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: <strong>Pomyślna rejestracja</strong> użytkownika.</li>
+<li><code>400 Bad Request</code>: <strong>Adres e-mail już zarejestrowany</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"username"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"email"</span><span class="token operator">:</span> <span class="token string">"user@example.com"</span><span class="token punctuation">,</span>
+    <span class="token property">"role"</span><span class="token operator">:</span> <span class="token string">"string"</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h3 id="logowanie-użytkownika"><strong>Logowanie Użytkownika</strong> </h3>
+<h3 id="post-login"><code>POST /login</code> </h3>
+<p><strong>Opis:</strong><br>
+Uwierzytelnia użytkownika na podstawie podanego e-maila (jako <code>username</code>) i hasła. Po pomyślnej weryfikacji generuje <strong><code>access_token</code></strong> (krótkożyjący) i <strong><code>refresh_token</code></strong> (dłużej żyjący, do odnawiania <code>access_token</code>). <code>refresh_token</code> jest zapisywany w bazie danych użytkownika.</p>
+<p><strong>Akceptowane dane (Form-data - <code>application/x-www-form-urlencoded</code>):</strong></p>
+<ul>
+<li><code>username</code>: Adres e-mail użytkownika.</li>
+<li><code>password</code>: Hasło użytkownika.</li>
+</ul>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: <strong>Pomyślne zalogowanie</strong>, zwrócono tokeny.</li>
+<li><code>400 Bad Request</code>: <strong>Nieprawidłowy e-mail lub hasło</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"access_token"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"refresh_token"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"token_type"</span><span class="token operator">:</span> <span class="token string">"bearer"</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h3 id="odświeżanie-tokena-dostępu"><strong>Odświeżanie Tokena Dostępu</strong> </h3>
+<h3 id="post-tokenrefresh"><code>POST /token/refresh</code> </h3>
+<p><strong>Opis:</strong><br>
+Pozwala <strong>odnowić wygasły <code>access_token</code></strong> za pomocą <code>refresh_token</code>. Weryfikuje <code>refresh_token</code> i jego obecność w bazie. Jeśli jest ważny, generuje <strong>nowy <code>access_token</code> i nowy <code>refresh_token</code></strong>, usuwając stary i dodając nowy do bazy.</p>
+<p><strong>Akceptowane dane (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"refresh_token"</span><span class="token operator">:</span> <span class="token string">"string"</span>
+<span class="token punctuation">}</span>
+</code></pre><p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: <strong>Nowe tokeny wygenerowane pomyślnie</strong>.</li>
+<li><code>401 Unauthorized</code>: <strong>Nieprawidłowy token odświeżania</strong> (np. wygasły, zmodyfikowany, nieznany).</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"access_token"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"refresh_token"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"token_type"</span><span class="token operator">:</span> <span class="token string">"bearer"</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h3 id="wylogowanie-z-sesji"><strong>Wylogowanie z Sesji</strong> </h3>
+<h3 id="post-logout"><code>POST /logout</code> </h3>
+<p><strong>Opis:</strong><br>
+Bezpiecznie <strong>kończy konkretną sesję użytkownika</strong> przez usunięcie podanego <code>refresh_token</code> z bazy danych. Wymaga <strong>uwierzytelnienia żądania</strong> za pomocą ważnego <code>access_token</code> w nagłówku autoryzacji.</p>
+<p><strong>Akceptowane dane (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"refresh_token"</span><span class="token operator">:</span> <span class="token string">"string"</span>
+<span class="token punctuation">}</span>
+</code></pre><p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: <strong>Pomyślnie wylogowano</strong> z bieżącego urządzenia.</li>
+<li><code>400 Bad Request</code>: <strong>Token odświeżania jest nieprawidłowy</strong> lub już unieważniony.</li>
+<li><code>401 Unauthorized</code>: <strong>Brak lub nieprawidłowy <code>access_token</code></strong> w nagłówku autoryzacji.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"message"</span><span class="token operator">:</span> <span class="token string">"string"</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h3 id="zapytania-użytkownicy"><code>ZAPYTANIA: UŻYTKOWNICY</code> </h3>
+<hr>
+<h3 id="lista-użytkowników"><strong>Lista Użytkowników</strong> </h3>
+<h3 id="get-users"><code>GET /users/</code> </h3>
+<p><strong>Opis:</strong><br>
+Ten endpoint umożliwia <strong>pobranie listy wszystkich zarejestrowanych użytkowników</strong> w systemie. Dostęp do tej funkcji jest <strong>ściśle ograniczony</strong> wyłącznie do użytkowników posiadających rolę <strong>administratora</strong>.</p>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>listę wszystkich użytkowników</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Uwierzytelniony użytkownik <strong>nie posiada uprawnień administratora</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON Array):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"username"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"email"</span><span class="token operator">:</span> <span class="token string">"user@example.com"</span><span class="token punctuation">,</span>
+        <span class="token property">"role"</span><span class="token operator">:</span> <span class="token string">"string"</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">]</span>
+</code></pre><hr>
+<h3 id="pobieranie-profilu-użytkownika"><strong>Pobieranie Profilu Użytkownika</strong> </h3>
+<h3 id="get-usersuser_id"><code>GET /users/{user_id}</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint służy do <strong>pobierania szczegółowych danych profilu konkretnego użytkownika</strong>. Użytkownicy z rolą <strong>administratora</strong> mogą pobrać profil <strong>dowolnego</strong> użytkownika. Zwykli użytkownicy mogą pobrać <strong>wyłącznie swój własny</strong> profil.</p>
+<p><strong>Parametry ścieżki:</strong></p>
+<ul>
+<li><code>user_id</code>: Unikalny identyfikator użytkownika (string).</li>
+</ul>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>profil użytkownika</strong>.</li>
+<li><code>400 Bad Request</code>: Podano <strong>nieprawidłowy format identyfikatora użytkownika</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Użytkownik <strong>nie posiada uprawnień</strong> do pobrania wskazanego profilu (np. zwykły użytkownik próbuje pobrać profil innej osoby).</li>
+<li><code>404 Not Found</code>: Użytkownik o podanym <code>user_id</code> <strong>nie został znaleziony</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"username"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"email"</span><span class="token operator">:</span> <span class="token string">"user@example.com"</span><span class="token punctuation">,</span>
+    <span class="token property">"role"</span><span class="token operator">:</span> <span class="token string">"string"</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h3 id="historia-licytacji-użytkownika"><strong>Historia Licytacji Użytkownika</strong> </h3>
+<h3 id="get-usersuser_idbids"><code>GET /users/{user_id}/bids</code> </h3>
+<p><strong>Opis:</strong><br>
+Ten endpoint umożliwia <strong>pobranie listy wszystkich licytacji (ofert)</strong> złożonych przez wskazanego użytkownika. Dostęp do tej historii jest możliwy <strong>wyłącznie dla właściciela konta</strong> lub dla użytkownika posiadającego rolę <strong>administratora</strong>.</p>
+<p><strong>Parametry ścieżki:</strong></p>
+<ul>
+<li><code>user_id</code>: Unikalny identyfikator użytkownika (string), którego historię licytacji chcemy pobrać.</li>
+</ul>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>listę licytacji</strong> danego użytkownika.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Użytkownik <strong>nie posiada uprawnień</strong> do wglądu w historię licytacji (np. zwykły użytkownik próbuje zobaczyć licytacje innej osoby).</li>
+<li><code>404 Not Found</code>: Użytkownik o podanym <code>user_id</code> <strong>nie został znaleziony</strong> (choć endpoint nie sprawdza bezpośrednio istnienia użytkownika, brak ofert dla ID nie zwróci błędu 404 dla użytkownika).</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON Array):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"auction_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"user_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"amount"</span><span class="token operator">:</span> <span class="token number">0.0</span><span class="token punctuation">,</span>
+        <span class="token property">"timestamp"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS.mmmmmm"</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">]</span>
+</code></pre><hr>
+<h3 id="zapytania-aukcje"><code>Zapytania: Aukcje</code> </h3>
+<hr>
+<h3 id="tworzenie-aukcji"><strong>Tworzenie Aukcji</strong> </h3>
+<h3 id="post-auctions"><code>POST /auctions</code> </h3>
+<p><strong>Opis:</strong><br>
+Ten endpoint umożliwia <strong>tworzenie nowych aukcji</strong>. Dostęp jest ograniczony do <strong>zalogowanych użytkowników</strong>. System automatycznie przypisuje <code>owner_id</code> (ID twórcy aukcji) oraz ustawia <code>current_price</code> na wartość <code>starting_price</code> podaną w żądaniu. Rekord <code>created_at</code> jest również ustawiany automatycznie na aktualny czas.</p>
+<p><strong>Akceptowane dane (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"string (optional)"</span><span class="token punctuation">,</span>
+    <span class="token property">"starting_price"</span><span class="token operator">:</span> <span class="token number">0.0</span>
+<span class="token punctuation">}</span>
+</code></pre><p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: <strong>Aukcja została pomyślnie utworzona</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"owner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"current_price"</span><span class="token operator">:</span> <span class="token number">0.0</span><span class="token punctuation">,</span>
+    <span class="token property">"created_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS.mmmmmm"</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h3 id="lista-aktywnych-aukcji"><strong>Lista Aktywnych Aukcji</strong> </h3>
+<h3 id="get-auctions"><code>GET /auctions</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint zwraca <strong>listę wszystkich aktualnie aktywnych aukcji</strong> dostępnych w systemie.</p>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>listę aktywnych aukcji</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON Array):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"owner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"current_price"</span><span class="token operator">:</span> <span class="token number">0.0</span><span class="token punctuation">,</span>
+        <span class="token property">"created_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS.mmmmmm"</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">]</span>
+</code></pre><hr>
+<h3 id="pobieranie-danych-aukcji"><strong>Pobieranie Danych Aukcji</strong> </h3>
+<h3 id="get-auctionsauction_id"><code>GET /auctions/{auction_id}</code> </h3>
+<p><strong>Opis:</strong><br>
+Ten endpoint służy do <strong>pobierania szczegółowych informacji o konkretnej aukcji</strong> na podstawie jej unikalnego identyfikatora.</p>
+<p><strong>Parametry ścieżki:</strong></p>
+<ul>
+<li><code>auction_id</code>: Unikalny identyfikator aukcji (string).</li>
+</ul>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>szczegóły aukcji</strong>.</li>
+<li><code>400 Bad Request</code>: Podano <strong>nieprawidłowy format identyfikatora aukcji</strong>.</li>
+<li><code>404 Not Found</code>: Aukcja o podanym <code>auction_id</code> <strong>nie została znaleziona</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"owner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"current_price"</span><span class="token operator">:</span> <span class="token number">0.0</span><span class="token punctuation">,</span>
+    <span class="token property">"created_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS.mmmmmm"</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h3 id="składanie-oferty-licytacji"><strong>Składanie Oferty (Licytacji)</strong> </h3>
+<h3 id="post-auctionsauction_idbid"><code>POST /auctions/{auction_id}/bid</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint umożliwia <strong>złożenie nowej oferty (licytacji)</strong> na wskazaną aukcję. Kwota oferty musi być <strong>wyższa niż aktualna cena</strong> aukcji. Operacja jest wykonywana w transakcji, z mechanizmem ponawiania w przypadku błędów przejściowych. Dostęp jest ograniczony do <strong>zalogowanych użytkowników</strong>.</p>
+<p><strong>Parametry ścieżki:</strong></p>
+<ul>
+<li><code>auction_id</code>: Unikalny identyfikator aukcji (string), na którą składana jest oferta.</li>
+</ul>
+<p><strong>Akceptowane dane (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"amount"</span><span class="token operator">:</span> <span class="token number">0.0</span>
+<span class="token punctuation">}</span>
+</code></pre><p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: <strong>Oferta została pomyślnie złożona</strong>.</li>
+<li><code>400 Bad Request</code>: <strong>Nieprawidłowy identyfikator aukcji</strong> lub <strong>kwota oferty jest niższa lub równa bieżącej cenie</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>404 Not Found</code>: Aukcja o podanym <code>auction_id</code> <strong>nie została znaleziona</strong>.</li>
+<li><code>500 Internal Server Error</code>: Wystąpił błąd serwera (np. przekroczono liczbę prób transakcji).</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"auction_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"user_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"amount"</span><span class="token operator">:</span> <span class="token number">0.0</span><span class="token punctuation">,</span>
+    <span class="token property">"timestamp"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS.mmmmmm"</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h3 id="zamykanie-aukcji"><strong>Zamykanie Aukcji</strong> </h3>
+<h3 id="post-auctionsauction_idclose"><code>POST /auctions/{auction_id}/close</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint ten umożliwia <strong>zamknięcie aktywnej aukcji</strong>. Po zamknięciu, aukcja jest przenoszona do kolekcji <code>history</code>, a wszystkie powiązane oferty są usuwane. Zwycięzca aukcji jest wyłaniany na podstawie najwyższej oferty (jeśli istnieją oferty). Dostęp do tej funkcji jest ograniczony do <strong>właściciela aukcji</strong> (<code>owner_id</code>) lub <strong>administratora</strong>. Cała operacja wykonywana jest w ramach transakcji.</p>
+<p><strong>Parametry ścieżki:</strong></p>
+<ul>
+<li><code>auction_id</code>: Unikalny identyfikator aukcji (string) do zamknięcia.</li>
+</ul>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: <strong>Aukcja została pomyślnie zakończona</strong>.</li>
+<li><code>400 Bad Request</code>: Podano <strong>nieprawidłowy format identyfikatora aukcji</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Użytkownik <strong>nie posiada uprawnień</strong> do zakończenia tej aukcji.</li>
+<li><code>404 Not Found</code>: Aukcja o podanym <code>auction_id</code> <strong>nie została znaleziona</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"message"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"winner_id"</span><span class="token operator">:</span> <span class="token string">"string (lub null, jeśli brak ofert)"</span><span class="token punctuation">,</span>
+    <span class="token property">"final_price"</span><span class="token operator">:</span> <span class="token number">0.0</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h3 id="edycja-danych-aukcji-przez-administratora"><strong>Edycja Danych Aukcji przez Administratora</strong> </h3>
+<h3 id="patch-auctionsauction_id"><code>PATCH /auctions/{auction_id}</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint umożliwia <strong>modyfikację danych aktywnej aukcji</strong> wyłącznie przez <strong>administratora</strong>. Dozwolone pola do edycji to <code>title</code>, <code>description</code> i <code>starting_price</code>. <strong>Zmiana <code>starting_price</code> jest niemożliwa, jeśli na aukcję zostały już złożone jakiekolwiek oferty</strong>.</p>
+<p><strong>Parametry ścieżki:</strong></p>
+<ul>
+<li><code>auction_id</code>: Unikalny identyfikator aukcji (string) do edycji.</li>
+</ul>
+<p><strong>Akceptowane dane (JSON):</strong><br>
+Przyjmuje obiekt JSON zawierający pola do zaktualizowania.</p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"string (optional)"</span><span class="token punctuation">,</span>
+    <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"string (optional)"</span><span class="token punctuation">,</span>
+    <span class="token property">"starting_price"</span><span class="token operator">:</span> <span class="token number">0.0</span> (optional)
+<span class="token punctuation">}</span>
+</code></pre><p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: <strong>Aukcja została pomyślnie zaktualizowana</strong>.</li>
+<li><code>400 Bad Request</code>: Brak danych do aktualizacji, podano <strong>nieprawidłowe pole</strong> do edycji, <strong>nieprawidłowy identyfikator aukcji</strong>, lub próbowano <strong>zmienić cenę startową przy istniejących ofertach</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Uwierzytelniony użytkownik <strong>nie posiada uprawnień administratora</strong>.</li>
+<li><code>404 Not Found</code>: Aukcja o podanym <code>auction_id</code> <strong>nie została znaleziona</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"owner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+    <span class="token property">"current_price"</span><span class="token operator">:</span> <span class="token number">0.0</span><span class="token punctuation">,</span>
+    <span class="token property">"created_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS.mmmmmm"</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h2 id="zapytania-raporty"><code>Zapytania: Raporty</code> </h2>
+<hr>
+<h3 id="historia-wszystkich-aukcji"><strong>Historia Wszystkich Aukcji</strong> </h3>
+<h3 id="get-reportshistory"><code>GET /reports/history</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint umożliwia <strong>pobranie pełnej historii wszystkich aukcji</strong>, które zostały zakończone. Dostęp do tej funkcji jest <strong>wyłącznie dla użytkowników z rolą administratora</strong>.</p>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>listę zakończonych aukcji</strong> wraz ze szczegółami.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Uwierzytelniony użytkownik <strong>nie posiada uprawnień administratora</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON Array):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"owner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"created_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS.mmmmmm"</span><span class="token punctuation">,</span>
+        <span class="token property">"closed_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS.mmmmmm"</span><span class="token punctuation">,</span>
+        <span class="token property">"winner_id"</span><span class="token operator">:</span> <span class="token string">"string (lub null)"</span><span class="token punctuation">,</span>
+        <span class="token property">"final_price"</span><span class="token operator">:</span> <span class="token number">0.0</span> (lub <span class="token null keyword">null</span>)
+    <span class="token punctuation">}</span>
+<span class="token punctuation">]</span>
+</code></pre><hr>
+<h3 id="wydatki-użytkowników"><strong>Wydatki Użytkowników</strong> </h3>
+<h3 id="get-reportsuser-spending"><code>GET /reports/user-spending</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint generuje raport <strong>sumarycznych wydatków każdego użytkownika</strong>, który wygrał przynajmniej jedną aukcję. Wyniki są sortowane malejąco według sumy wydatków. Dostęp do tego raportu jest <strong>wyłącznie dla administratorów</strong>.</p>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>listę użytkowników z ich całkowitymi wydatkami</strong> i liczbą wygranych aukcji.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Uwierzytelniony użytkownik <strong>nie posiada uprawnień administratora</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON Array):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+        <span class="token property">"user_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"username"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"email"</span><span class="token operator">:</span> <span class="token string">"user@example.com"</span><span class="token punctuation">,</span>
+        <span class="token property">"total_spent"</span><span class="token operator">:</span> <span class="token number">0.0</span><span class="token punctuation">,</span>
+        <span class="token property">"won_count"</span><span class="token operator">:</span> <span class="token number">0</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">]</span>
+</code></pre><hr>
+<h3 id="top-zwycięzcy-aukcji"><strong>Top Zwycięzcy Aukcji</strong> </h3>
+<h3 id="get-reportstop-winners"><code>GET /reports/top-winners</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint zwraca listę użytkowników z <strong>największą liczbą wygranych aukcji</strong>. Domyślnie lista obejmuje top 10 zwycięzców. Możliwe jest określenie limitu wyników. Dostęp do tego raportu jest <strong>wyłącznie dla administratorów</strong>.</p>
+<p><strong>Parametry zapytania (query parameters):</strong></p>
+<ul>
+<li><code>limit</code>: Liczba wyników do zwrócenia (domyślnie <code>10</code>).</li>
+</ul>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>listę użytkowników z największą liczbą wygranych aukcji</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Uwierzytelniony użytkownik <strong>nie posiada uprawnień administratora</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON Array):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+        <span class="token property">"user_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"username"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"won_count"</span><span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>
+        <span class="token property">"total_spent"</span><span class="token operator">:</span> <span class="token number">0.0</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">]</span>
+</code></pre><hr>
+<h3 id="całkowity-przepływ-gotówki"><strong>Całkowity Przepływ Gotówki</strong> </h3>
+<h3 id="get-reportstotal-cashflow"><code>GET /reports/total-cashflow</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint oblicza i zwraca <strong>całkowitą wartość pieniężną wygenerowaną przez wszystkie zakończone aukcje</strong>, które miały zwycięzcę. Dostęp do tego raportu jest <strong>wyłącznie dla administratorów</strong>.</p>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>sumę całkowitego przepływu gotówki</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Uwierzytelniony użytkownik <strong>nie posiada uprawnień administratora</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"total_cashflow"</span><span class="token operator">:</span> <span class="token number">0.0</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h3 id="aukcje-wysokiej-wartości"><strong>Aukcje Wysokiej Wartości</strong> </h3>
+<h3 id="get-reportshigh-value-auctions"><code>GET /reports/high-value-auctions</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint zwraca listę zakończonych aukcji, których <strong>cena końcowa przekroczyła określoną minimalną wartość</strong>. Domyślna wartość minimalna to <code>1000.0</code>. Dostęp do tego raportu jest <strong>wyłącznie dla administratorów</strong>.</p>
+<p><strong>Parametry zapytania (query parameters):</strong></p>
+<ul>
+<li><code>min_price</code>: Minimalna cena końcowa aukcji do uwzględnienia (domyślnie <code>1000.0</code>).</li>
+</ul>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>listę aukcji o wysokiej wartości końcowej</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Uwierzytelniony użytkownik <strong>nie posiada uprawnień administratora</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON Array):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"owner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"created_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS+0000"</span><span class="token punctuation">,</span>
+        <span class="token property">"closed_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS+0000"</span><span class="token punctuation">,</span>
+        <span class="token property">"winner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"final_price"</span><span class="token operator">:</span> <span class="token number">0.0</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">]</span>
+</code></pre><hr>
+<h3 id="aukcje-z-ostatniego-tygodnia"><strong>Aukcje z Ostatniego Tygodnia</strong> </h3>
+<h3 id="get-reportslast-week-auctions"><code>GET /reports/last-week-auctions</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint zwraca listę aukcji, które <strong>zostały utworzone w ciągu ostatnich 7 dni</strong>. Dostęp do tego raportu jest <strong>wyłącznie dla administratorów</strong>.</p>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>listę aukcji utworzonych w ciągu ostatniego tygodnia</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Uwierzytelniony użytkownik <strong>nie posiada uprawnień administratora</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON Array):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"owner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"created_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS+0000"</span><span class="token punctuation">,</span>
+        <span class="token property">"closed_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS+0000"</span><span class="token punctuation">,</span>
+        <span class="token property">"winner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"final_price"</span><span class="token operator">:</span> <span class="token number">0.0</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">]</span>
+</code></pre><hr>
+<h3 id="aukcje-z-ostatniego-miesiąca"><strong>Aukcje z Ostatniego Miesiąca</strong> </h3>
+<h3 id="get-reportslast-month-auctions"><code>GET /reports/last-month-auctions</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint zwraca listę aukcji, które <strong>zostały utworzone w ciągu ostatnich 30 dni</strong>. Dostęp do tego raportu jest <strong>wyłącznie dla administratorów</strong>.</p>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>listę aukcji utworzonych w ciągu ostatniego miesiąca</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Uwierzytelniony użytkownik <strong>nie posiada uprawnień administratora</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON Array):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"owner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"created_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS+0000"</span><span class="token punctuation">,</span>
+        <span class="token property">"closed_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS+0000"</span><span class="token punctuation">,</span>
+        <span class="token property">"winner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"final_price"</span><span class="token operator">:</span> <span class="token number">0.0</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">]</span>
+</code></pre><hr>
+<h3 id="aukcje-z-ostatnich-6-godzin"><strong>Aukcje z Ostatnich 6 Godzin</strong> </h3>
+<h3 id="get-reportslast-6h-auctions"><code>GET /reports/last-6h-auctions</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint zwraca listę aukcji, które <strong>zostały utworzone w ciągu ostatnich 6 godzin</strong>. Dostęp do tego raportu jest <strong>wyłącznie dla administratorów</strong>.</p>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>listę aukcji utworzonych w ciągu ostatnich 6 godzin</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Uwierzytelniony użytkownik <strong>nie posiada uprawnień administratora</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON Array):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+        <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"title"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"owner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"created_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS+0000"</span><span class="token punctuation">,</span>
+        <span class="token property">"closed_at"</span><span class="token operator">:</span> <span class="token string">"YYYY-MM-DDTHH:MM:SS+0000"</span><span class="token punctuation">,</span>
+        <span class="token property">"winner_id"</span><span class="token operator">:</span> <span class="token string">"string"</span><span class="token punctuation">,</span>
+        <span class="token property">"final_price"</span><span class="token operator">:</span> <span class="token number">0.0</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">]</span>
+</code></pre><hr>
+<h3 id="statystyki-aukcji"><strong>Statystyki Aukcji</strong> </h3>
+<h3 id="get-reportsauctions-stats"><code>GET /reports/auctions-stats</code> </h3>
+<p><strong>Opis:</strong><br>
+Endpoint dostarcza <strong>zagregowane statystyki dotyczące aukcji</strong>, w tym liczbę aktualnie aktywnych aukcji oraz liczbę aukcji, które zostały już zakończone. Dostęp do tego raportu jest <strong>wyłącznie dla administratorów</strong>.</p>
+<p><strong>Akceptowane dane:</strong><br>
+Brak.</p>
+<p><strong>Kody odpowiedzi HTTP:</strong></p>
+<ul>
+<li><code>200 OK</code>: Zwraca <strong>statystyki dotyczące aktywnych i zakończonych aukcji</strong>.</li>
+<li><code>401 Unauthorized</code>: Użytkownik nie jest uwierzytelniony.</li>
+<li><code>403 Forbidden</code>: Uwierzytelniony użytkownik <strong>nie posiada uprawnień administratora</strong>.</li>
+</ul>
+<p><strong>Format danych zwracanych (JSON):</strong></p>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+    <span class="token property">"auctions_active"</span><span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>
+    <span class="token property">"auctions_closed"</span><span class="token operator">:</span> <span class="token number">0</span>
+<span class="token punctuation">}</span>
+</code></pre>
       </div>
       
       
